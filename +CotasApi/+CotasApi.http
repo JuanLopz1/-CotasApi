@@ -1,0 +1,6 @@
+@_CotasApi_HostAddress = http://localhost:5030
+
+GET {{_CotasApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
