@@ -1,4 +1,4 @@
-﻿using _CotasApi.Models;
+using _CotasApi.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace _CotasApi.Data
@@ -11,6 +11,7 @@ namespace _CotasApi.Data
 
         public DbSet<User> Users => Set<User>();
         public DbSet<PetPost> PetPosts => Set<PetPost>();
+        public DbSet<PetPostLike> PetPostLikes => Set<PetPostLike>();
         public DbSet<Conversation> Conversations => Set<Conversation>();
         public DbSet<Message> Messages => Set<Message>();
 
@@ -28,35 +29,45 @@ namespace _CotasApi.Data
                 .HasForeignKey(p => p.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-                            modelBuilder.Entity<PetPost>()
-                                .HasMany(p => p.Conversations)
-                                .WithOne(c => c.PetPost)
-                                .HasForeignKey(c => c.PetPostId)
-                                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<PetPost>()
+                .HasMany(p => p.Conversations)
+                .WithOne(c => c.PetPost)
+                .HasForeignKey(c => c.PetPostId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-                            modelBuilder.Entity<Conversation>()
-                                .HasMany(c => c.Messages)
-                                .WithOne(m => m.Conversation)
-                                .HasForeignKey(m => m.ConversationId)
-                                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<PetPost>()
+                .HasMany(p => p.Likes)
+                .WithOne(l => l.PetPost)
+                .HasForeignKey(l => l.PetPostId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-                            modelBuilder.Entity<Conversation>()
-                                .HasOne(c => c.StarterUser)
-                                .WithMany()
-                                .HasForeignKey(c => c.StarterUserId)
-                                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<PetPostLike>()
+                .HasIndex(l => new { l.PetPostId, l.ClientId })
+                .IsUnique();
 
-                            modelBuilder.Entity<Conversation>()
-                                .HasOne(c => c.ReceiverUser)
-                                .WithMany()
-                                .HasForeignKey(c => c.ReceiverUserId)
-                                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Conversation>()
+                .HasMany(c => c.Messages)
+                .WithOne(m => m.Conversation)
+                .HasForeignKey(m => m.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-                            modelBuilder.Entity<Message>()
-                                .HasOne(m => m.SenderUser)
-                                .WithMany(u => u.Messages)
-                                .HasForeignKey(m => m.SenderUserId)
-                                .OnDelete(DeleteBehavior.Restrict);
-                        }
-                    }
-                }
+            modelBuilder.Entity<Conversation>()
+                .HasOne(c => c.StarterUser)
+                .WithMany()
+                .HasForeignKey(c => c.StarterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Conversation>()
+                .HasOne(c => c.ReceiverUser)
+                .WithMany()
+                .HasForeignKey(c => c.ReceiverUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.SenderUser)
+                .WithMany(u => u.Messages)
+                .HasForeignKey(m => m.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
+    }
+}

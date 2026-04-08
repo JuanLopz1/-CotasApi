@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualBasic;
+using Microsoft.VisualBasic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -27,6 +27,9 @@ namespace _CotasApi.Models
         [StringLength(100)]
         public string Location { get; set; } = string.Empty;
 
+        [StringLength(260)]
+        public string? ImageUrl { get; set; }
+
         [Required]
         public PostStatus Status { get; set; } = PostStatus.Pending;
 
@@ -38,5 +41,6 @@ namespace _CotasApi.Models
         public User? User { get; set; }
 
         public ICollection<Conversation> Conversations { get; set; } = new List<Conversation>();
+        public ICollection<PetPostLike> Likes { get; set; } = new List<PetPostLike>();
     }
 }

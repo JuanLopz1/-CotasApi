@@ -1,5 +1,6 @@
 using _CotasApi.Models;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace _CotasApi.DTOs
 {
@@ -23,8 +24,8 @@ namespace _CotasApi.DTOs
         [Required]
         [StringLength(100)]
         public string Location { get; set; } = string.Empty;
-
-        [Required]
-        public int UserId { get; set; }
+        [StringLength(260)]
+        public string? ImageUrl { get; set; }
+        public IFormFile? ImageFile { get; set; }
     }
 }

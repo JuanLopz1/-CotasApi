@@ -89,6 +89,10 @@ namespace _CotasApi.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(260)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -118,6 +122,28 @@ namespace _CotasApi.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PetPosts");
+                });
+
+            modelBuilder.Entity("_CotasApi.Models.PetPostLike", b =>
+                {
+                    b.Property<int>("PetPostLikeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PetPostId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("PetPostLikeId");
+
+                    b.HasIndex("PetPostId", "ClientId")
+                        .IsUnique();
+
+                    b.ToTable("PetPostLikes");
                 });
 
             modelBuilder.Entity("_CotasApi.Models.User", b =>
@@ -212,6 +238,17 @@ namespace _CotasApi.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("_CotasApi.Models.PetPostLike", b =>
+                {
+                    b.HasOne("_CotasApi.Models.PetPost", "PetPost")
+                        .WithMany("Likes")
+                        .HasForeignKey("PetPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PetPost");
+                });
+
             modelBuilder.Entity("_CotasApi.Models.Conversation", b =>
                 {
                     b.Navigation("Messages");
@@ -220,6 +257,8 @@ namespace _CotasApi.Migrations
             modelBuilder.Entity("_CotasApi.Models.PetPost", b =>
                 {
                     b.Navigation("Conversations");
+
+                    b.Navigation("Likes");
                 });
 
             modelBuilder.Entity("_CotasApi.Models.User", b =>

@@ -23,6 +23,7 @@ namespace _CotasApi.DTOs
         [Required]
         [StringLength(100)]
         public string Location { get; set; } = string.Empty;
-
+        [StringLength(260)]
+        public string? ImageUrl { get; set; }
     }
 }
