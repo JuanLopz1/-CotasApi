@@ -1,4 +1,3 @@
-using Microsoft.VisualBasic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -17,6 +16,12 @@ namespace _CotasApi.Models
         public string PetName { get; set; } = string.Empty;
 
         [Required]
+        public PetCategory PetCategory { get; set; } = PetCategory.Others;
+
+        [StringLength(80)]
+        public string? PetKindLabel { get; set; }
+
+        [Required]
         public PostType PostType { get; set; }
 
         [Required]
@@ -31,6 +36,16 @@ namespace _CotasApi.Models
         public string? ImageUrl { get; set; }
 
         [Required]
+        [EmailAddress]
+        [StringLength(200)]
+        public string ContactEmail { get; set; } = string.Empty;
+
+        [StringLength(40)]
+        public string? ContactPhone { get; set; }
+
+        public PreferredContactMethod? PreferredContact { get; set; }
+
+        [Required]
         public PostStatus Status { get; set; } = PostStatus.Pending;
 
         public DateTime DatePosted { get; set; } = DateTime.Now;
@@ -42,5 +57,6 @@ namespace _CotasApi.Models
 
         public ICollection<Conversation> Conversations { get; set; } = new List<Conversation>();
         public ICollection<PetPostLike> Likes { get; set; } = new List<PetPostLike>();
+        public ICollection<PetPostComment> Comments { get; set; } = new List<PetPostComment>();
     }
 }

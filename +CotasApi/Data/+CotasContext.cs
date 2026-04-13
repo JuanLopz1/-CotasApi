@@ -12,6 +12,7 @@ namespace _CotasApi.Data
         public DbSet<User> Users => Set<User>();
         public DbSet<PetPost> PetPosts => Set<PetPost>();
         public DbSet<PetPostLike> PetPostLikes => Set<PetPostLike>();
+        public DbSet<PetPostComment> PetPostComments => Set<PetPostComment>();
         public DbSet<Conversation> Conversations => Set<Conversation>();
         public DbSet<Message> Messages => Set<Message>();
 
@@ -40,6 +41,16 @@ namespace _CotasApi.Data
                 .WithOne(l => l.PetPost)
                 .HasForeignKey(l => l.PetPostId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PetPost>()
+                .HasMany(p => p.Comments)
+                .WithOne(c => c.PetPost)
+                .HasForeignKey(c => c.PetPostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Conversation>()
+                .HasIndex(c => new { c.PetPostId, c.StarterUserId })
+                .IsUnique();
 
             modelBuilder.Entity<PetPostLike>()
                 .HasIndex(l => new { l.PetPostId, l.ClientId })

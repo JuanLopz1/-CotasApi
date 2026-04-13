@@ -2,10 +2,14 @@ import { categoryOptions, postTypeOptions, statusOptions } from "../api/petPosts
 
 function FilterBar({ filters, onFilterChange, onClearFilters }) {
   return (
-    <section className="filters-shell">
+    <section className="filters-shell" aria-labelledby="filters-heading">
       <div className="section-head">
-        <h2>Browse Pets</h2>
-        <button type="button" className="ghost-btn" onClick={onClearFilters}>
+        <h2 id="filters-heading">Browse Pets</h2>
+        <button
+          type="button"
+          className="secondary-button secondary-button--compact"
+          onClick={onClearFilters}
+        >
           Clear filters
         </button>
       </div>
@@ -68,7 +72,7 @@ function FilterBar({ filters, onFilterChange, onClearFilters }) {
             className={`chip ${String(option.value) === filters.status ? "chip-active" : ""}`}
             onClick={() => onFilterChange("status", String(option.value))}
           >
-            {option.value === 1 ? "Available" : option.label}
+            {option.label}
           </button>
         ))}
       </div>

@@ -20,6 +20,12 @@ namespace _CotasApi.Controllers
             _context = context;
         }
 
+        private bool IsAdmin() =>
+            User.Identity?.IsAuthenticated == true && User.IsInRole(nameof(UserRole.Admin));
+
+        private static bool IsPubliclyVisible(PetPost post) =>
+            post.Status == PostStatus.Approved && !string.IsNullOrWhiteSpace(post.ImageUrl);
+
         // GET: api/petposts
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<PetPostDto>), StatusCodes.Status200OK)]
@@ -30,6 +36,15 @@ namespace _CotasApi.Controllers
         {
             IQueryable<PetPost> query = _context.PetPosts
                 .Include(p => p.Likes);
+
+            if (!IsAdmin())
+            {
+                // Inline predicate — EF Core cannot translate a custom method call to SQL.
+                query = query.Where(p =>
+                    p.Status == PostStatus.Approved &&
+                    p.ImageUrl != null &&
+                    p.ImageUrl != "");
+            }
 
             if (status.HasValue)
                 query = query.Where(p => p.Status == status.Value);
@@ -54,6 +69,9 @@ namespace _CotasApi.Controllers
             if (post == null)
                 return NotFound();
 
+            if (!IsAdmin() && !IsPubliclyVisible(post))
+                return NotFound();
+
             return ToDto(post, clientId);
         }
 
@@ -69,13 +87,24 @@ namespace _CotasApi.Controllers
                 return BadRequest("Could not resolve an author user for this post.");
             }
 
+            var kindLabel = string.IsNullOrWhiteSpace(createDto.PetKindLabel)
+                ? null
+                : createDto.PetKindLabel.Trim();
+
             var post = new PetPost
             {
                 Title = createDto.Title,
                 PetName = createDto.PetName,
+                PetCategory = createDto.PetCategory,
+                PetKindLabel = kindLabel,
                 PostType = createDto.PostType,
                 Description = createDto.Description,
                 Location = createDto.Location,
+                ContactEmail = createDto.ContactEmail.Trim(),
+                ContactPhone = string.IsNullOrWhiteSpace(createDto.ContactPhone)
+                    ? null
+                    : createDto.ContactPhone.Trim(),
+                PreferredContact = createDto.PreferredContact,
                 UserId = userId,
                 ImageUrl = await ResolveImageUrlAsync(createDto)
             };
@@ -92,24 +121,48 @@ namespace _CotasApi.Controllers
         // PUT: api/petposts/5
         [HttpPut("{id}")]
         [Authorize(Roles = nameof(UserRole.Admin))]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdatePetPost(int id, UpdatePetPostDto updateDto)
+        public async Task<IActionResult> UpdatePetPost(int id, [FromForm] UpdatePetPostFormDto dto)
         {
             var existingPost = await _context.PetPosts.FindAsync(id);
             if (existingPost == null)
                 return NotFound();
 
-            existingPost.Title = updateDto.Title;
-            existingPost.PetName = updateDto.PetName;
-            existingPost.PostType = updateDto.PostType;
-            existingPost.Description = updateDto.Description;
-            existingPost.Location = updateDto.Location;
-            if (!string.IsNullOrWhiteSpace(updateDto.ImageUrl))
+            existingPost.Title = dto.Title;
+            existingPost.PetName = dto.PetName;
+            existingPost.PostType = dto.PostType;
+            existingPost.PetCategory = dto.PetCategory;
+            existingPost.PetKindLabel = string.IsNullOrWhiteSpace(dto.PetKindLabel)
+                ? null
+                : dto.PetKindLabel.Trim();
+            existingPost.Description = dto.Description;
+            existingPost.Location = dto.Location;
+            existingPost.ContactEmail = dto.ContactEmail.Trim();
+            existingPost.ContactPhone = string.IsNullOrWhiteSpace(dto.ContactPhone)
+                ? null
+                : dto.ContactPhone.Trim();
+            existingPost.PreferredContact = dto.PreferredContact;
+
+            if (dto.ClearImage)
             {
-                existingPost.ImageUrl = NormalizeImagePath(updateDto.ImageUrl);
+                existingPost.ImageUrl = null;
+            }
+            else if (dto.ImageFile is { Length: > 0 })
+            {
+                existingPost.ImageUrl = await SaveUploadedImageAsync(dto.ImageFile);
+            }
+            else if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+            {
+                existingPost.ImageUrl = NormalizeImagePath(dto.ImageUrl);
+            }
+
+            if (dto.Status.HasValue)
+            {
+                existingPost.Status = dto.Status.Value;
             }
 
             try
@@ -120,8 +173,7 @@ namespace _CotasApi.Controllers
             {
                 if (!_context.PetPosts.Any(e => e.PetPostId == id))
                     return NotFound();
-                else
-                    throw;
+                throw;
             }
 
             return NoContent();
@@ -145,6 +197,11 @@ namespace _CotasApi.Controllers
                 .SingleOrDefaultAsync(p => p.PetPostId == id);
 
             if (post == null)
+            {
+                return NotFound();
+            }
+
+            if (!IsAdmin() && !IsPubliclyVisible(post))
             {
                 return NotFound();
             }
@@ -226,9 +283,14 @@ namespace _CotasApi.Controllers
                 PetPostId = post.PetPostId,
                 Title = post.Title,
                 PetName = post.PetName,
+                PetCategory = post.PetCategory,
+                PetKindLabel = post.PetKindLabel,
                 PostType = post.PostType,
                 Description = post.Description,
                 Location = post.Location,
+                ContactEmail = post.ContactEmail,
+                ContactPhone = post.ContactPhone,
+                PreferredContact = post.PreferredContact,
                 ImageUrl = post.ImageUrl,
                 Status = post.Status,
                 DatePosted = post.DatePosted,

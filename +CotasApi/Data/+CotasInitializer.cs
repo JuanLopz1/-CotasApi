@@ -1,4 +1,5 @@
 using _CotasApi.Models;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace _CotasApi.Data
@@ -9,6 +10,7 @@ namespace _CotasApi.Data
         {
             using var scope = serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<_CotasContext>();
+            var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
 
             try
             {
@@ -21,8 +23,11 @@ namespace _CotasApi.Data
 
                 EnsureGuestUser(context);
                 EnsureAdminUser(context);
+                EnsureStaffAdminUser(context);
                 RemoveLogoPosts(context);
                 SeedPetPostsFromImageFolder(context);
+                FixOpaqueFilenamePetPosts(context);
+                ClearMissingLocalImageUrls(context, env);
             }
             catch (Exception ex)
             {
@@ -103,6 +108,33 @@ namespace _CotasApi.Data
             context.SaveChanges();
         }
 
+        /// <summary>School/demo staff admin (JWT login).</summary>
+        private static void EnsureStaffAdminUser(_CotasContext context)
+        {
+            const string email = "jdlopz10@gmail.com";
+            var user = context.Users.SingleOrDefault(u => u.Email == email);
+
+            if (user == null)
+            {
+                context.Users.Add(new User
+                {
+                    Name = "Staff Admin",
+                    Email = email,
+                    Password = "Juan123",
+                    Role = UserRole.Admin,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                user.Name = "Staff Admin";
+                user.Password = "Juan123";
+                user.Role = UserRole.Admin;
+            }
+
+            context.SaveChanges();
+        }
+
         private static void SeedPetPostsFromImageFolder(_CotasContext context)
         {
             var imageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "img");
@@ -143,14 +175,20 @@ namespace _CotasApi.Data
 
                 var petName = BuildPetNameFromFileName(Path.GetFileNameWithoutExtension(imageFile));
                 var postType = PickPostTypeByIndex(seeded);
+                var petCategory = InferPetCategory(petName, Path.GetFileName(imageFile));
 
                 context.PetPosts.Add(new PetPost
                 {
                     Title = BuildTitle(postType, petName),
                     PetName = petName,
+                    PetCategory = petCategory,
+                    PetKindLabel = petCategory == PetCategory.Others ? petName : null,
                     PostType = postType,
                     Description = BuildDescription(postType, petName),
                     Location = BuildLocation(seeded),
+                    ContactEmail = "listings@cotas.demo",
+                    ContactPhone = null,
+                    PreferredContact = PreferredContactMethod.Any,
                     ImageUrl = imageUrl,
                     Status = PostStatus.Approved,
                     DatePosted = today.AddDays(-seeded),
@@ -190,8 +228,72 @@ namespace _CotasApi.Data
             return fileName.Contains("logo", StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// Uploads often use GUID-style file names — those are not meaningful pet names on cards.
+        /// </summary>
+        private static bool LooksLikeOpaqueFileToken(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var s = text.Trim().Replace("-", "").Replace("_", "");
+            if (s.Length is < 16 or > 48)
+            {
+                return false;
+            }
+
+            foreach (var c in s)
+            {
+                if (!char.IsAsciiHexDigit(c))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// One-time style cleanup for rows already stored with GUID-like titles from seeded uploads.
+        /// </summary>
+        private static void FixOpaqueFilenamePetPosts(_CotasContext context)
+        {
+            var posts = context.PetPosts.ToList();
+            var changed = false;
+            foreach (var p in posts)
+            {
+                if (!LooksLikeOpaqueFileToken(p.PetName))
+                {
+                    continue;
+                }
+
+                const string petName = "Community pet";
+                p.PetName = petName;
+                p.Title = BuildTitle(p.PostType, petName);
+                p.Description = BuildDescription(p.PostType, petName);
+                if (p.PetKindLabel != null && LooksLikeOpaqueFileToken(p.PetKindLabel))
+                {
+                    p.PetKindLabel = "Mixed";
+                }
+
+                changed = true;
+            }
+
+            if (changed)
+            {
+                context.SaveChanges();
+            }
+        }
+
         private static string BuildPetNameFromFileName(string fileName)
         {
+            if (LooksLikeOpaqueFileToken(fileName))
+            {
+                return "Community pet";
+            }
+
             var words = fileName
                 .Replace("_", " ")
                 .Replace("-", " ")
@@ -200,6 +302,27 @@ namespace _CotasApi.Data
 
             var result = string.Join(' ', words);
             return string.IsNullOrWhiteSpace(result) ? "Unknown Pet" : result;
+        }
+
+        private static PetCategory InferPetCategory(string petName, string fileName)
+        {
+            var text = $"{petName} {fileName}".ToLowerInvariant();
+            if (text.Contains("dog") || text.Contains("perro"))
+            {
+                return PetCategory.Dogs;
+            }
+
+            if (text.Contains("cat") || text.Contains("gato") || text.Contains("kitten"))
+            {
+                return PetCategory.Cats;
+            }
+
+            if (text.Contains("bird") || text.Contains("pajaro") || text.Contains("pájaro") || text.Contains("parrot"))
+            {
+                return PetCategory.Birds;
+            }
+
+            return PetCategory.Others;
         }
 
         private static PostType PickPostTypeByIndex(int index)
@@ -248,6 +371,35 @@ namespace _CotasApi.Data
             };
 
             return cities[index % cities.Length];
+        }
+
+        /// <summary>
+        /// Drops <see cref="PetPost.ImageUrl"/> when it points at a local <c>/img/...</c> file that is not on disk
+        /// (avoids endless 404s in dev when the DB still references removed sample images).
+        /// </summary>
+        private static void ClearMissingLocalImageUrls(_CotasContext context, IWebHostEnvironment env)
+        {
+            // Do not use StartsWith(..., StringComparison) — EF Core cannot translate it to SQL on SQLite.
+            var posts = context.PetPosts
+                .Where(p => p.ImageUrl != null && EF.Functions.Like(p.ImageUrl, "/img/%"))
+                .ToList();
+
+            var changed = false;
+            foreach (var post in posts)
+            {
+                var relative = post.ImageUrl!.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                var fullPath = Path.Combine(env.ContentRootPath, relative);
+                if (!File.Exists(fullPath))
+                {
+                    post.ImageUrl = null;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                context.SaveChanges();
+            }
         }
     }
 }

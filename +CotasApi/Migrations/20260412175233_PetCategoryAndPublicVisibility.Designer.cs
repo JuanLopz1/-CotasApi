@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using _CotasApi.Data;
 
@@ -10,9 +11,11 @@ using _CotasApi.Data;
 namespace _CotasApi.Migrations
 {
     [DbContext(typeof(_CotasContext))]
-    partial class CotasContextModelSnapshot : ModelSnapshot
+    [Migration("20260412175233_PetCategoryAndPublicVisibility")]
+    partial class PetCategoryAndPublicVisibility
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -37,12 +40,11 @@ namespace _CotasApi.Migrations
 
                     b.HasKey("ConversationId");
 
+                    b.HasIndex("PetPostId");
+
                     b.HasIndex("ReceiverUserId");
 
                     b.HasIndex("StarterUserId");
-
-                    b.HasIndex("PetPostId", "StarterUserId")
-                        .IsUnique();
 
                     b.ToTable("Conversations");
                 });
@@ -82,15 +84,6 @@ namespace _CotasApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("ContactEmail")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ContactPhone")
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTime>("DatePosted")
                         .HasColumnType("TEXT");
 
@@ -123,9 +116,6 @@ namespace _CotasApi.Migrations
                     b.Property<int>("PostType")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("PreferredContact")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
@@ -142,35 +132,6 @@ namespace _CotasApi.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PetPosts");
-                });
-
-            modelBuilder.Entity("_CotasApi.Models.PetPostComment", b =>
-                {
-                    b.Property<int>("PetPostCommentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AuthorName")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PetPostId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("PetPostCommentId");
-
-                    b.HasIndex("PetPostId");
-
-                    b.ToTable("PetPostComments");
                 });
 
             modelBuilder.Entity("_CotasApi.Models.PetPostLike", b =>
@@ -287,17 +248,6 @@ namespace _CotasApi.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("_CotasApi.Models.PetPostComment", b =>
-                {
-                    b.HasOne("_CotasApi.Models.PetPost", "PetPost")
-                        .WithMany("Comments")
-                        .HasForeignKey("PetPostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PetPost");
-                });
-
             modelBuilder.Entity("_CotasApi.Models.PetPostLike", b =>
                 {
                     b.HasOne("_CotasApi.Models.PetPost", "PetPost")
@@ -316,8 +266,6 @@ namespace _CotasApi.Migrations
 
             modelBuilder.Entity("_CotasApi.Models.PetPost", b =>
                 {
-                    b.Navigation("Comments");
-
                     b.Navigation("Conversations");
 
                     b.Navigation("Likes");

@@ -32,8 +32,30 @@ async function handleResponse(response) {
   return response.json();
 }
 
-export async function getPetPosts(filters) {
-  const response = await fetch(`${API_BASE_URL}${buildQuery(filters)}`);
+export async function getPetPosts(filters, token) {
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${buildQuery(filters)}`, { headers });
+  return handleResponse(response);
+}
+
+export async function getPetPost(id, clientId, token) {
+  const params = new URLSearchParams();
+  if (clientId) {
+    params.set("clientId", clientId);
+  }
+  const query = params.toString();
+  const suffix = query ? `?${query}` : "";
+
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/${id}${suffix}`, { headers });
   return handleResponse(response);
 }
 
@@ -47,8 +69,23 @@ export async function createPetPost(newPost, token) {
   body.set("title", newPost.title);
   body.set("petName", newPost.petName);
   body.set("postType", String(newPost.postType));
+  body.set("petCategory", String(newPost.petCategory));
+  if (newPost.petKindLabel) {
+    body.set("petKindLabel", newPost.petKindLabel);
+  }
   body.set("description", newPost.description);
   body.set("location", newPost.location);
+  body.set("contactEmail", newPost.contactEmail);
+  if (newPost.contactPhone) {
+    body.set("contactPhone", newPost.contactPhone);
+  }
+  if (
+    newPost.preferredContact !== undefined &&
+    newPost.preferredContact !== null &&
+    newPost.preferredContact !== ""
+  ) {
+    body.set("preferredContact", String(newPost.preferredContact));
+  }
 
   if (newPost.imageUrl) {
     body.set("imageUrl", newPost.imageUrl);
@@ -85,19 +122,48 @@ export async function updatePetPostStatus(id, status, token) {
   return handleResponse(response);
 }
 
-export async function updatePetPost(id, postData, token) {
-  const headers = {
-    "Content-Type": "application/json"
-  };
-
+export async function updatePetPost(id, payload, token) {
+  const headers = {};
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+  }
+
+  const body = new FormData();
+  body.set("title", payload.title);
+  body.set("petName", payload.petName);
+  body.set("postType", String(payload.postType));
+  body.set("petCategory", String(payload.petCategory));
+  if (payload.petKindLabel) {
+    body.set("petKindLabel", payload.petKindLabel);
+  }
+  body.set("description", payload.description);
+  body.set("location", payload.location);
+  body.set("contactEmail", payload.contactEmail);
+  if (payload.contactPhone) {
+    body.set("contactPhone", payload.contactPhone);
+  }
+  if (
+    payload.preferredContact !== undefined &&
+    payload.preferredContact !== null &&
+    payload.preferredContact !== ""
+  ) {
+    body.set("preferredContact", String(payload.preferredContact));
+  }
+  if (payload.imageUrl) {
+    body.set("imageUrl", payload.imageUrl);
+  }
+  if (payload.imageFile) {
+    body.set("imageFile", payload.imageFile);
+  }
+  body.set("clearImage", payload.clearImage ? "true" : "false");
+  if (payload.status !== undefined && payload.status !== null && payload.status !== "") {
+    body.set("status", String(payload.status));
   }
 
   const response = await fetch(`${API_BASE_URL}/${id}`, {
     method: "PUT",
     headers,
-    body: JSON.stringify(postData)
+    body
   });
 
   return handleResponse(response);
@@ -129,11 +195,65 @@ export async function togglePetLike(id, clientId) {
   return handleResponse(response);
 }
 
+export function likeErrorMessage(error) {
+  const msg = (error?.message || "").toLowerCase();
+  if (msg.includes("only adoption") || msg.includes("adoption posts")) {
+    return "Likes are only available on adoption posts.";
+  }
+  if (msg.includes("clientid") || msg.includes("client id")) {
+    return "We could not identify this browser. Try refreshing the page.";
+  }
+  if (msg.includes("not found") || msg.includes("404")) {
+    return "This post is no longer available.";
+  }
+  return "Could not update the like. Check your connection and try again.";
+}
+
+export const preferredContactOptions = [
+  { value: "", label: "No preference" },
+  { value: 0, label: "Either email or phone" },
+  { value: 1, label: "Email preferred" },
+  { value: 2, label: "Phone preferred" }
+];
+
+export function preferredContactLabel(value) {
+  if (value === null || value === undefined) {
+    return "No preference";
+  }
+  const row = preferredContactOptions.find((o) => o.value === value);
+  return row?.label ?? "No preference";
+}
+
 export const postTypeOptions = [
   { value: 0, label: "Adoption" },
   { value: 1, label: "Lost" },
   { value: 2, label: "Found" }
 ];
+
+export const petCategoryOptions = [
+  { value: 0, filterSlug: "dogs", label: "Dog" },
+  { value: 1, filterSlug: "cats", label: "Cat" },
+  { value: 2, filterSlug: "birds", label: "Bird" },
+  { value: 3, filterSlug: "others", label: "Other (describe below)" }
+];
+
+export function categorySlugForPost(post) {
+  const match = petCategoryOptions.find((o) => o.value === post.petCategory);
+  return match?.filterSlug ?? "others";
+}
+
+export function petCategoryLabel(post) {
+  const match = petCategoryOptions.find((o) => o.value === post.petCategory);
+  const base = match?.label.replace(" (describe below)", "") ?? "Pet";
+  const extra = post.petKindLabel?.trim();
+  if (extra) {
+    if (post.petCategory === 3) {
+      return `${base}: ${extra}`;
+    }
+    return `${base} · ${extra}`;
+  }
+  return base;
+}
 
 export const statusOptions = [
   { value: 0, label: "Pending" },
@@ -141,11 +261,29 @@ export const statusOptions = [
   { value: 2, label: "Rejected" }
 ];
 
-export const statusLabelMap = {
-  0: "Pending",
-  1: "Available",
-  2: "Rejected"
-};
+export function statusPresentation(post) {
+  const pending = { label: "Pending review", className: "badge-pending" };
+  const rejected = { label: "Rejected", className: "badge-rejected" };
+
+  if (post.status === 0) {
+    return pending;
+  }
+  if (post.status === 2) {
+    return rejected;
+  }
+
+  if (post.postType === 0) {
+    return { label: "Ready to adopt", className: "badge-adopt" };
+  }
+  if (post.postType === 1) {
+    return { label: "Missing", className: "badge-lost" };
+  }
+  if (post.postType === 2) {
+    return { label: "Found — needs owner", className: "badge-found" };
+  }
+
+  return { label: "Published", className: "badge-adopt" };
+}
 
 export const categoryOptions = [
   { value: "all", label: "All" },
