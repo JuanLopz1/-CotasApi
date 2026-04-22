@@ -9,6 +9,8 @@ import { useToast } from "../context/ToastContext";
 /** Admin JWT/API uses string "Admin"; tolerate legacy storage or numeric enum (1). */
 function isUserAdmin(user) {
   if (!user) return false;
+  const token = user.token ?? user.Token;
+  if (!token || String(token).trim().length === 0) return false;
   const role = user.role ?? user.Role;
   if (role === undefined || role === null) return false;
   if (typeof role === "number") return role === 1;
@@ -111,6 +113,14 @@ export default function MainLayout({ clientId, bumpHomeList }) {
                 className={({ isActive }) => (isActive ? "nav-link-active" : undefined)}
               >
                 Profile
+              </NavLink>
+            ) : null}
+            {isAdmin ? (
+              <NavLink
+                to="/founded-pets"
+                className={({ isActive }) => (isActive ? "nav-link-active" : undefined)}
+              >
+                Founded pets
               </NavLink>
             ) : null}
             <NavLink to="/about" className={({ isActive }) => (isActive ? "nav-link-active" : undefined)}>

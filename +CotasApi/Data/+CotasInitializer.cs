@@ -25,8 +25,8 @@ namespace _CotasApi.Data
                 EnsureAdminUser(context);
                 EnsureStaffAdminUser(context);
                 RemoveLogoPosts(context);
+                RemoveCommunityPetPlaceholderPosts(context);
                 SeedPetPostsFromImageFolder(context);
-                FixOpaqueFilenamePetPosts(context);
                 ClearMissingLocalImageUrls(context, env);
             }
             catch (Exception ex)
@@ -164,6 +164,12 @@ namespace _CotasApi.Data
 
             foreach (var imageFile in imageFiles)
             {
+                var fileStem = Path.GetFileNameWithoutExtension(imageFile);
+                if (LooksLikeOpaqueFileToken(fileStem))
+                {
+                    continue;
+                }
+
                 var relative = Path.GetRelativePath(imageDirectory, imageFile).Replace("\\", "/");
                 var imageUrl = $"/img/{relative}";
 
@@ -222,6 +228,24 @@ namespace _CotasApi.Data
             context.SaveChanges();
         }
 
+        /// <summary>
+        /// Removes demo rows labeled "Community pet" (GUID-named image seeds / opaque filename cleanup).
+        /// </summary>
+        private static void RemoveCommunityPetPlaceholderPosts(_CotasContext context)
+        {
+            var toRemove = context.PetPosts
+                .Where(p => p.PetName == "Community pet")
+                .ToList();
+
+            if (toRemove.Count == 0)
+            {
+                return;
+            }
+
+            context.PetPosts.RemoveRange(toRemove);
+            context.SaveChanges();
+        }
+
         private static bool IsLogoImagePath(string path)
         {
             var fileName = Path.GetFileNameWithoutExtension(path);
@@ -255,45 +279,8 @@ namespace _CotasApi.Data
             return true;
         }
 
-        /// <summary>
-        /// One-time style cleanup for rows already stored with GUID-like titles from seeded uploads.
-        /// </summary>
-        private static void FixOpaqueFilenamePetPosts(_CotasContext context)
-        {
-            var posts = context.PetPosts.ToList();
-            var changed = false;
-            foreach (var p in posts)
-            {
-                if (!LooksLikeOpaqueFileToken(p.PetName))
-                {
-                    continue;
-                }
-
-                const string petName = "Community pet";
-                p.PetName = petName;
-                p.Title = BuildTitle(p.PostType, petName);
-                p.Description = BuildDescription(p.PostType, petName);
-                if (p.PetKindLabel != null && LooksLikeOpaqueFileToken(p.PetKindLabel))
-                {
-                    p.PetKindLabel = "Mixed";
-                }
-
-                changed = true;
-            }
-
-            if (changed)
-            {
-                context.SaveChanges();
-            }
-        }
-
         private static string BuildPetNameFromFileName(string fileName)
         {
-            if (LooksLikeOpaqueFileToken(fileName))
-            {
-                return "Community pet";
-            }
-
             var words = fileName
                 .Replace("_", " ")
                 .Replace("-", " ")

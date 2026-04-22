@@ -48,6 +48,11 @@ namespace _CotasApi.Models
         [Required]
         public PostStatus Status { get; set; } = PostStatus.Pending;
 
+        [StringLength(500)]
+        public string? ReunionDetails { get; set; }
+
+        public DateTime? ReunionAt { get; set; }
+
         public DateTime DatePosted { get; set; } = DateTime.Now;
 
         [ForeignKey("User")]

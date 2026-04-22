@@ -28,6 +28,16 @@ function formatWhen(iso) {
     : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function userInitials(name) {
+  const s = String(name ?? "").trim();
+  if (!s) return "?";
+  const parts = s.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return s.slice(0, 2).toUpperCase();
+}
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { clientId, currentUser, isAdmin, bumpHomeList, onLogout } = useOutletContext();
@@ -215,78 +225,30 @@ export default function ProfilePage() {
       ) : null}
 
       <div className="profile-page section-reveal">
-        <header className="profile-page-head">
-          <h1 id="profile-heading">Your profile</h1>
-          <p className="muted profile-page-lead">
-            Signed-in account overview and quick access to your activity on +cotas.
-          </p>
-        </header>
-
-        <section className="panel profile-account-card" aria-labelledby="account-heading">
-          <h2 id="account-heading" className="profile-account-section-title">
-            Account
-          </h2>
-          <dl className="profile-account-dl">
-            <div>
-              <dt>Name</dt>
-              <dd>{displayName}</dd>
+        <header className="panel profile-hero" aria-labelledby="profile-heading">
+          <div className="profile-hero-main">
+            <div className="profile-avatar" aria-hidden="true">
+              {userInitials(displayName)}
             </div>
-            <div>
-              <dt>Email</dt>
-              <dd>{email || "—"}</dd>
+            <div className="profile-hero-copy">
+              <p className="profile-hero-kicker muted">Your +cotas space</p>
+              <h1 id="profile-heading">{displayName}</h1>
+              <p className="profile-hero-email muted">{email || "No email on file"}</p>
+              <p className="profile-role-pill">{roleLabel}</p>
             </div>
-            <div>
-              <dt>Role</dt>
-              <dd>{roleLabel}</dd>
-            </div>
-          </dl>
-          <div className="profile-account-actions">
-            <button type="button" className="btn btn-secondary" onClick={handleLogoutClick}>
+          </div>
+          <div className="profile-hero-actions">
+            <Link className="btn btn-primary profile-hero-cta" to="/create">
+              Create a post
+            </Link>
+            <Link className="btn btn-secondary profile-hero-cta" to="/messages">
+              Messages
+            </Link>
+            <button type="button" className="btn ghost-btn profile-hero-logout" onClick={handleLogoutClick}>
               Log out
             </button>
           </div>
-        </section>
-
-        <section className="panel home-listings-panel profile-section" aria-labelledby="convos-heading">
-          <div className="section-head">
-            <h2 id="convos-heading">Recent conversations</h2>
-            <Link className="muted profile-section-link" to="/messages">
-              Open inbox
-            </Link>
-          </div>
-          {loadingConvos ? (
-            <p className="muted" aria-busy="true">
-              Loading…
-            </p>
-          ) : conversations.length === 0 ? (
-            <p className="muted profile-empty-inline">
-              No messages yet. Open a listing and use <strong>Private chat</strong> to start a thread.
-            </p>
-          ) : (
-            <ul className="profile-convo-preview-list">
-              {conversations.map((row) => (
-                <li key={row.conversationId} className="profile-convo-preview-item">
-                  <div>
-                    <p className="profile-convo-preview-pet">{row.petName}</p>
-                    {row.lastMessagePreview ? (
-                      <p className="muted profile-convo-preview-preview">{row.lastMessagePreview}</p>
-                    ) : null}
-                    <p className="muted profile-convo-preview-meta">
-                      {row.lastMessageAt ? (
-                        <time dateTime={row.lastMessageAt}>{formatWhen(row.lastMessageAt)}</time>
-                      ) : (
-                        <time dateTime={row.createdAt}>{formatWhen(row.createdAt)}</time>
-                      )}
-                    </p>
-                  </div>
-                  <Link className="btn btn-secondary profile-convo-preview-btn" to={`/post/${row.petPostId}`}>
-                    View listing
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        </header>
 
         <section className="panel home-listings-panel profile-section" aria-labelledby="my-posts-heading">
           <div className="section-head">
@@ -305,7 +267,10 @@ export default function ProfilePage() {
               <div className="skeleton-card" />
             </div>
           ) : myPosts.length === 0 ? (
-            <div className="empty-state empty-state--warm" role="status">
+            <div className="empty-state empty-state--warm empty-state--soft-icon" role="status">
+              <span className="empty-state-icon" aria-hidden="true">
+                ✦
+              </span>
               <p className="empty-state-title">No listings yet</p>
               <p className="empty-state-text">Create a post so others can see your pet on the board.</p>
               <Link className="btn btn-primary empty-state-cta" to="/create">
@@ -333,18 +298,21 @@ export default function ProfilePage() {
 
         <section className="panel home-listings-panel profile-section" aria-labelledby="saved-heading">
           <div className="section-head">
-            <h2 id="saved-heading">Saved hearts</h2>
+            <h2 id="saved-heading">Liked posts</h2>
             <span className="muted">{loadingSaved ? "…" : `${savedPosts.length} saved`}</span>
           </div>
-          <p className="muted profile-saved-lead">Adoption posts you liked with this browser.</p>
+          <p className="muted profile-saved-lead">Adoption listings where you tapped the heart (saved to this account).</p>
           {loadingSaved ? (
             <div className="card-grid" aria-busy="true" aria-label="Loading saved posts">
               <div className="skeleton-card" />
             </div>
           ) : savedPosts.length === 0 ? (
-            <div className="empty-state empty-state--warm" role="status">
-              <p className="empty-state-title">No saved adoption posts</p>
-              <p className="empty-state-text">Tap the heart on an adoption listing to save it here.</p>
+            <div className="empty-state empty-state--warm empty-state--soft-icon" role="status">
+              <span className="empty-state-icon" aria-hidden="true">
+                ♡
+              </span>
+              <p className="empty-state-title">No liked posts yet</p>
+              <p className="empty-state-text">Tap the heart on an adoption listing to keep it here for later.</p>
               <Link className="btn btn-primary empty-state-cta" to="/">
                 Browse pets
               </Link>
@@ -365,6 +333,54 @@ export default function ProfilePage() {
                 />
               ))}
             </div>
+          )}
+        </section>
+
+        <section className="panel home-listings-panel profile-section" aria-labelledby="convos-heading">
+          <div className="section-head">
+            <h2 id="convos-heading">Recent conversations</h2>
+            <Link className="muted profile-section-link" to="/messages">
+              Open inbox
+            </Link>
+          </div>
+          {loadingConvos ? (
+            <div className="profile-inline-loading" aria-busy="true" aria-label="Loading conversations">
+              <span className="loading-shimmer" />
+              <span className="loading-shimmer loading-shimmer--short" />
+            </div>
+          ) : conversations.length === 0 ? (
+            <div className="empty-state empty-state--warm empty-state--compact empty-state--soft-icon" role="status">
+              <span className="empty-state-icon" aria-hidden="true">
+                💬
+              </span>
+              <p className="empty-state-title">No messages yet</p>
+              <p className="empty-state-text">
+                Open a listing and use <strong>Private chat</strong> to start a thread with the poster.
+              </p>
+            </div>
+          ) : (
+            <ul className="profile-convo-preview-list">
+              {conversations.map((row) => (
+                <li key={row.conversationId} className="profile-convo-preview-item">
+                  <div>
+                    <p className="profile-convo-preview-pet">{row.petName}</p>
+                    {row.lastMessagePreview ? (
+                      <p className="muted profile-convo-preview-preview">{row.lastMessagePreview}</p>
+                    ) : null}
+                    <p className="muted profile-convo-preview-meta">
+                      {row.lastMessageAt ? (
+                        <time dateTime={row.lastMessageAt}>{formatWhen(row.lastMessageAt)}</time>
+                      ) : (
+                        <time dateTime={row.createdAt}>{formatWhen(row.createdAt)}</time>
+                      )}
+                    </p>
+                  </div>
+                  <Link className="btn btn-secondary profile-convo-preview-btn" to={`/post/${row.petPostId}`}>
+                    View listing
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       </div>

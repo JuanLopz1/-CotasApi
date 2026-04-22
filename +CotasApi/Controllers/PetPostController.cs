@@ -23,6 +23,13 @@ namespace _CotasApi.Controllers
         private bool IsAdmin() =>
             User.Identity?.IsAuthenticated == true && User.IsInRole(nameof(UserRole.Admin));
 
+        private int? CurrentUserId()
+        {
+            var raw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("sub")?.Value;
+            return int.TryParse(raw, out var value) && value > 0 ? value : null;
+        }
+
         private static bool IsPubliclyVisible(PetPost post) =>
             post.Status == PostStatus.Approved && !string.IsNullOrWhiteSpace(post.ImageUrl);
 
@@ -32,10 +39,25 @@ namespace _CotasApi.Controllers
         public async Task<ActionResult<IEnumerable<PetPostDto>>> GetPetPosts(
             [FromQuery] PostStatus? status,
             [FromQuery] PostType? postType,
-            [FromQuery] string? clientId)
+            [FromQuery] bool includeReunited = false,
+            [FromQuery] string? clientId = null)
         {
             IQueryable<PetPost> query = _context.PetPosts
                 .Include(p => p.Likes);
+
+            if (includeReunited)
+            {
+                if (!IsAdmin())
+                {
+                    return Forbid();
+                }
+
+                query = query.Where(p => p.Status == PostStatus.Reunited);
+            }
+            else
+            {
+                query = query.Where(p => p.Status != PostStatus.Reunited);
+            }
 
             if (!IsAdmin())
             {
@@ -54,6 +76,32 @@ namespace _CotasApi.Controllers
 
             var posts = await query.ToListAsync();
             return posts.Select(post => ToDto(post, clientId)).ToList();
+        }
+
+        // GET: api/petposts/stats
+        [HttpGet("stats")]
+        [ProducesResponseType(typeof(PetPostStatsDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PetPostStatsDto>> GetStats()
+        {
+            var total = await _context.PetPosts.CountAsync();
+            var reunited = await _context.PetPosts.CountAsync(p => p.Status == PostStatus.Reunited);
+            var active = await _context.PetPosts.CountAsync(p =>
+                p.Status == PostStatus.Approved &&
+                p.ImageUrl != null &&
+                p.ImageUrl != "");
+            var adoption = await _context.PetPosts.CountAsync(p => p.PostType == PostType.Adoption);
+            var lost = await _context.PetPosts.CountAsync(p => p.PostType == PostType.Lost);
+            var found = await _context.PetPosts.CountAsync(p => p.PostType == PostType.Found);
+
+            return Ok(new PetPostStatsDto
+            {
+                TotalListings = total,
+                ActiveListings = active,
+                ReunitedPets = reunited,
+                AdoptionListings = adoption,
+                LostListings = lost,
+                FoundListings = found
+            });
         }
 
         // GET: api/petposts/mine
@@ -100,7 +148,9 @@ namespace _CotasApi.Controllers
             if (post == null)
                 return NotFound();
 
-            if (!IsAdmin() && !IsPubliclyVisible(post))
+            var currentUserId = CurrentUserId();
+            var isOwner = currentUserId.HasValue && currentUserId.Value == post.UserId;
+            if (!IsAdmin() && !isOwner && !IsPubliclyVisible(post))
                 return NotFound();
 
             return ToDto(post, clientId);
@@ -151,7 +201,7 @@ namespace _CotasApi.Controllers
 
         // PUT: api/petposts/5
         [HttpPut("{id}")]
-        [Authorize(Roles = nameof(UserRole.Admin))]
+        [Authorize]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -162,6 +212,12 @@ namespace _CotasApi.Controllers
             var existingPost = await _context.PetPosts.FindAsync(id);
             if (existingPost == null)
                 return NotFound();
+
+            var currentUserId = CurrentUserId();
+            if (!IsAdmin() && currentUserId != existingPost.UserId)
+            {
+                return Forbid();
+            }
 
             existingPost.Title = dto.Title;
             existingPost.PetName = dto.PetName;
@@ -269,6 +325,35 @@ namespace _CotasApi.Controllers
             });
         }
 
+        // PUT: api/petposts/5/reunited
+        [HttpPut("{id}/reunited")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> MarkAsReunited(int id, MarkPostReunitedDto dto)
+        {
+            var post = await _context.PetPosts.FindAsync(id);
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            var currentUserId = CurrentUserId();
+            var isOwner = currentUserId.HasValue && currentUserId.Value == post.UserId;
+            if (!IsAdmin() && !isOwner)
+            {
+                return Forbid();
+            }
+
+            post.Status = PostStatus.Reunited;
+            post.ReunionDetails = dto.Details.Trim();
+            post.ReunionAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
         // DELETE: api/petposts/5
         [HttpDelete("{id}")]
         [Authorize(Roles = nameof(UserRole.Admin))]
@@ -324,6 +409,8 @@ namespace _CotasApi.Controllers
                 PreferredContact = post.PreferredContact,
                 ImageUrl = post.ImageUrl,
                 Status = post.Status,
+                ReunionDetails = post.ReunionDetails,
+                ReunionAt = post.ReunionAt,
                 DatePosted = post.DatePosted,
                 UserId = post.UserId,
                 LikesCount = post.Likes.Count,

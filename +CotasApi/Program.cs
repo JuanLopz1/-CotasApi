@@ -55,6 +55,8 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    // Root has no SPA; send developers to Swagger instead of a blank 404.
+    app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 }
 
 var imagesPath = Path.Combine(app.Environment.ContentRootPath, "img");

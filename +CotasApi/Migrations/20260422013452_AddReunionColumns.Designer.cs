@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using _CotasApi.Data;
 
@@ -10,9 +11,11 @@ using _CotasApi.Data;
 namespace _CotasApi.Migrations
 {
     [DbContext(typeof(_CotasContext))]
-    partial class CotasContextModelSnapshot : ModelSnapshot
+    [Migration("20260422013452_AddReunionColumns")]
+    partial class AddReunionColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");

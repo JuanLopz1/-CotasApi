@@ -93,14 +93,20 @@ export default function MessagesPage() {
         </header>
 
         {loading ? (
-          <p className="muted" aria-busy="true">
-            Loading conversations…
-          </p>
+          <div className="messages-loading" aria-busy="true" aria-label="Loading conversations">
+            <div className="messages-loading-card panel" />
+            <div className="messages-loading-card panel" />
+            <div className="messages-loading-card panel" />
+          </div>
         ) : rows.length === 0 ? (
-          <div className="panel empty-state empty-state--warm" role="status">
+          <div className="panel empty-state empty-state--warm empty-state--soft-icon" role="status">
+            <span className="empty-state-icon" aria-hidden="true">
+              💬
+            </span>
             <p className="empty-state-title">No conversations yet</p>
             <p className="empty-state-text">
-              Open a listing and use the action button to message the poster. Threads you start will show up here.
+              Open a listing and use <strong>Private chat</strong> or the contact button. Threads you start will show up
+              here.
             </p>
             <Link className="btn btn-primary empty-state-cta" to="/">
               Browse pets

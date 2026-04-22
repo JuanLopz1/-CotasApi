@@ -253,6 +253,7 @@ export default function HomePage({ initialPosts, listSeededRef, homeRefreshKey }
         filters={filters}
         onFilterChange={handleFilterChange}
         onClearFilters={() => setFilters(initialFilters)}
+        showStatusFilters={isAdmin}
       />
 
       {isAdmin && pendingModerationCount > 0 ? (
@@ -280,7 +281,10 @@ export default function HomePage({ initialPosts, listSeededRef, homeRefreshKey }
             <div className="skeleton-card" />
           </div>
         ) : visiblePosts.length === 0 ? (
-          <div className="empty-state empty-state--warm" role="status">
+          <div className="empty-state empty-state--warm empty-state--soft-icon" role="status">
+            <span className="empty-state-icon" aria-hidden="true">
+              🐾
+            </span>
             <p className="empty-state-title">No pets match what you are looking for yet.</p>
             <p className="empty-state-text">
               Try widening your filters or searching with a different word — or add a new listing so someone can

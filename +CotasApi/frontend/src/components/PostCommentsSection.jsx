@@ -96,15 +96,22 @@ export default function PostCommentsSection({
       </p>
 
       {loading ? (
-        <p className="muted" aria-busy="true">
-          Loading comments…
-        </p>
+        <div className="comments-loading" aria-busy="true" aria-label="Loading comments">
+          <span className="loading-shimmer" />
+          <span className="loading-shimmer loading-shimmer--mid" />
+        </div>
       ) : comments.length === 0 ? (
-        <p className="muted comments-empty">
-          {token
-            ? "No comments yet — be the first to add one."
-            : "No comments yet — sign in to start the conversation."}
-        </p>
+        <div className="empty-state empty-state--warm empty-state--compact empty-state--soft-icon comments-empty-state" role="status">
+          <span className="empty-state-icon" aria-hidden="true">
+            ✎
+          </span>
+          <p className="empty-state-title">No public notes yet</p>
+          <p className="empty-state-text">
+            {token
+              ? "Be the first to leave a question or helpful detail for others reading this listing."
+              : "Sign in to start the thread — everyone can read what you share."}
+          </p>
+        </div>
       ) : (
         <ul className="comments-list">
           {comments.map((c) => (

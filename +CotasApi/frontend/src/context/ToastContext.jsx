@@ -15,7 +15,9 @@ export function ToastProvider({ children }) {
 
   useEffect(() => {
     if (!toast) return undefined;
-    const timer = window.setTimeout(() => setToast(null), 3800);
+    const duration =
+      toast.type === "error" ? 5200 : toast.type === "info" ? 4400 : 4000;
+    const timer = window.setTimeout(() => setToast(null), duration);
     return () => window.clearTimeout(timer);
   }, [toast]);
 

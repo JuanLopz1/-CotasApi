@@ -15,6 +15,7 @@ import LoginPage from "./pages/LoginPage";
 import MessagesPage from "./pages/MessagesPage";
 import ProfilePage from "./pages/ProfilePage";
 import RegisterPage from "./pages/RegisterPage";
+import FoundedPetsPage from "./pages/FoundedPetsPage";
 
 function App() {
   const clientId = useMemo(() => getOrCreateClientId(), []);
@@ -74,6 +75,7 @@ function App() {
               <Route path="create" element={<CreatePostPage />} />
               <Route path="messages" element={<MessagesPage />} />
               <Route path="profile" element={<ProfilePage />} />
+              <Route path="founded-pets" element={<FoundedPetsPage />} />
             </Route>
           </Route>
         </Routes>

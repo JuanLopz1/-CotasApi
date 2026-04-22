@@ -1,18 +1,22 @@
 const API_BASE_URL = "/api/PetPosts";
 
 function buildQuery(filters) {
+  const safe = filters ?? {};
   const params = new URLSearchParams();
 
-  if (filters.status !== "") {
-    params.set("status", filters.status);
+  if (safe.status !== undefined && safe.status !== null && safe.status !== "") {
+    params.set("status", String(safe.status));
   }
 
-  if (filters.postType !== "") {
-    params.set("postType", filters.postType);
+  if (safe.postType !== undefined && safe.postType !== null && safe.postType !== "") {
+    params.set("postType", String(safe.postType));
   }
 
-  if (filters.clientId) {
-    params.set("clientId", filters.clientId);
+  if (safe.clientId) {
+    params.set("clientId", safe.clientId);
+  }
+  if (safe.includeReunited) {
+    params.set("includeReunited", "true");
   }
 
   const query = params.toString();
@@ -39,6 +43,11 @@ export async function getPetPosts(filters, token) {
   }
 
   const response = await fetch(`${API_BASE_URL}${buildQuery(filters)}`, { headers });
+  return handleResponse(response);
+}
+
+export async function getPetPostStats() {
+  const response = await fetch(`${API_BASE_URL}/stats`);
   return handleResponse(response);
 }
 
@@ -134,6 +143,24 @@ export async function updatePetPostStatus(id, status, token) {
     method: "PUT",
     headers,
     body: JSON.stringify({ status })
+  });
+
+  return handleResponse(response);
+}
+
+export async function markPetPostReunited(id, details, token) {
+  const headers = {
+    "Content-Type": "application/json"
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/${id}/reunited`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ details })
   });
 
   return handleResponse(response);
@@ -275,7 +302,8 @@ export function petCategoryLabel(post) {
 export const statusOptions = [
   { value: 0, label: "In review" },
   { value: 1, label: "Approved" },
-  { value: 2, label: "Rejected" }
+  { value: 2, label: "Rejected" },
+  { value: 3, label: "Reunited" }
 ];
 
 export function statusPresentation(post) {
@@ -287,6 +315,9 @@ export function statusPresentation(post) {
   }
   if (post.status === 2) {
     return rejected;
+  }
+  if (post.status === 3) {
+    return { label: "Reunited", className: "badge-reunited" };
   }
 
   if (post.postType === 0) {

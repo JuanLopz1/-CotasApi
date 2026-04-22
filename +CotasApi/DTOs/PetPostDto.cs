@@ -17,6 +17,8 @@ namespace _CotasApi.DTOs
         public PreferredContactMethod? PreferredContact { get; set; }
         public string? ImageUrl { get; set; }
         public PostStatus Status { get; set; }
+        public string? ReunionDetails { get; set; }
+        public DateTime? ReunionAt { get; set; }
         public DateTime DatePosted { get; set; }
         public int UserId { get; set; }
         public int LikesCount { get; set; }

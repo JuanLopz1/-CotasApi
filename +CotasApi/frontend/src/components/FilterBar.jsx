@@ -1,6 +1,6 @@
 import { categoryOptions, postTypeOptions, statusOptions } from "../api/petPostsApi";
 
-function FilterBar({ filters, onFilterChange, onClearFilters }) {
+function FilterBar({ filters, onFilterChange, onClearFilters, showStatusFilters = false }) {
   return (
     <section className="filters-shell" aria-labelledby="filters-heading">
       <div className="section-head">
@@ -57,25 +57,27 @@ function FilterBar({ filters, onFilterChange, onClearFilters }) {
         ))}
       </div>
 
-      <div className="chip-row">
-        <button
-          type="button"
-          className={`chip ${filters.status === "" ? "chip-active" : ""}`}
-          onClick={() => onFilterChange("status", "")}
-        >
-          All statuses
-        </button>
-        {statusOptions.map((option) => (
+      {showStatusFilters ? (
+        <div className="chip-row">
           <button
-            key={option.value}
             type="button"
-            className={`chip ${String(option.value) === filters.status ? "chip-active" : ""}`}
-            onClick={() => onFilterChange("status", String(option.value))}
+            className={`chip ${filters.status === "" ? "chip-active" : ""}`}
+            onClick={() => onFilterChange("status", "")}
           >
-            {option.label}
+            All statuses
           </button>
-        ))}
-      </div>
+          {statusOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`chip ${String(option.value) === filters.status ? "chip-active" : ""}`}
+              onClick={() => onFilterChange("status", String(option.value))}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

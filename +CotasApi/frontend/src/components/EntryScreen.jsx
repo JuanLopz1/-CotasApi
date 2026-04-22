@@ -8,14 +8,15 @@ function EntryScreen({ isLoading, error, onRetry }) {
       </a>
       <div className="entry-card" role="status" aria-live="polite" aria-busy={isLoading}>
         <BrandLogo className="entry-logo" alt="+cotas logo" />
-        <h1>+cotas</h1>
+        <h1 className="entry-screen-title">+cotas</h1>
 
         {isLoading ? (
           <>
-            <p>Loading pet listings and details…</p>
+            <p className="entry-screen-status">Gathering the latest listings for you…</p>
             <div className="entry-progress" aria-hidden="true">
               <span />
             </div>
+            <p className="entry-hint">This only takes a moment.</p>
           </>
         ) : null}
 

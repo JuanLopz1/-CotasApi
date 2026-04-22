@@ -4,6 +4,7 @@ import {
   deletePetPost,
   getPetPost,
   likeErrorMessage,
+  markPetPostReunited,
   petCategoryLabel,
   postTypeOptions,
   preferredContactLabel,
@@ -43,17 +44,23 @@ const NO_PHOTO_SVG =
 function ctaForPostType(postType) {
   if (postType === 1) {
     return {
+      headline: "Spotted this pet or have a lead?",
+      subline: "Reach the poster with what you saw — every detail helps bring them home.",
       messageLabel: "I've seen this pet",
       messageHint: "Send a private message to the person who posted this lost pet."
     };
   }
   if (postType === 2) {
     return {
+      headline: "Could this be your missing pet?",
+      subline: "Compare markings and location with the finder before you meet.",
       messageLabel: "This might be my pet",
       messageHint: "Message the finder to compare details safely."
     };
   }
   return {
+    headline: "Interested in adopting?",
+    subline: "Introduce yourself and ask how to move forward — gently and respectfully.",
     messageLabel: "Contact owner",
     messageHint: "Introduce yourself and ask how to move forward with adoption."
   };
@@ -79,6 +86,9 @@ export default function PostDetailPage() {
   const [contactInquiryOpen, setContactInquiryOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [isManagingPosts, setIsManagingPosts] = useState(false);
+  const [reunionModalOpen, setReunionModalOpen] = useState(false);
+  const [reunionDetails, setReunionDetails] = useState("");
+  const [showReunionSuccess, setShowReunionSuccess] = useState(false);
 
   const postId = Number(id);
   const token = currentUser?.token ?? currentUser?.Token;
@@ -184,6 +194,32 @@ export default function PostDetailPage() {
     }
   }
 
+  async function handleMarkReunited() {
+    if (!post || !token) {
+      showToast("Sign in to update this listing.", "info");
+      return;
+    }
+    const details = reunionDetails.trim();
+    if (details.length < 6) {
+      showToast("Please share a short reunion note (at least 6 characters).", "info");
+      return;
+    }
+
+    setIsManagingPosts(true);
+    try {
+      await markPetPostReunited(post.petPostId, details, token);
+      setReunionModalOpen(false);
+      setReunionDetails("");
+      setShowReunionSuccess(true);
+      await loadPost();
+      showToast("Listing marked as reunited.", "success");
+    } catch (error) {
+      showToast(error?.message || "Could not mark as reunited.", "error");
+    } finally {
+      setIsManagingPosts(false);
+    }
+  }
+
   const mailtoHref = useMemo(() => {
     if (!post?.contactEmail) return null;
     const subject = encodeURIComponent(`+cotas: ${post.petName}`);
@@ -221,7 +257,10 @@ export default function PostDetailPage() {
 
   if (loadState === "missing" || !post) {
     return (
-      <div className="panel empty-state empty-state--warm section-reveal" role="status">
+      <div className="panel empty-state empty-state--warm empty-state--soft-icon section-reveal" role="status">
+        <span className="empty-state-icon" aria-hidden="true">
+          ◎
+        </span>
         <h1 className="empty-state-title">This listing is not available.</h1>
         <p className="empty-state-text">It may have been removed, or the link could be incorrect.</p>
         <Link className="btn btn-primary empty-state-cta" to="/">
@@ -240,9 +279,11 @@ export default function PostDetailPage() {
   const imageSrc = hasImageUrl ? post.imageUrl : NO_PHOTO_SVG;
   const isAdoption = post.postType === 0;
   const isOwnListing = uid !== null && uid === post.userId;
+  const canManageListing = isOwnListing || isAdmin;
   const canMessage = Boolean(token) && !isOwnListing;
   const showContactInquiry = !isOwnListing;
   const isPendingReview = post.status === 0;
+  const isReunited = post.status === 3;
 
   return (
     <>
@@ -271,6 +312,44 @@ export default function PostDetailPage() {
         onClose={() => setConversationOpen(false)}
       />
 
+      {reunionModalOpen ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reunion-modal-title">
+          <div className="modal-panel-wrap">
+            <div className="modal-panel panel">
+              <div className="modal-head">
+                <h2 id="reunion-modal-title">Mark as found</h2>
+                <button type="button" className="modal-close" onClick={() => setReunionModalOpen(false)} aria-label="Close">
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <p className="muted reunion-modal-lead">
+                  Share what happened so staff can keep an accurate reunited record.
+                </p>
+                <label className="field">
+                  <span>Reunion details</span>
+                  <textarea
+                    rows={4}
+                    maxLength={500}
+                    value={reunionDetails}
+                    onChange={(event) => setReunionDetails(event.target.value)}
+                    placeholder="Example: The owner confirmed the collar and picked up the pet today at 4:30 PM."
+                  />
+                </label>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setReunionModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="button" className="btn btn-success" disabled={isManagingPosts} onClick={handleMarkReunited}>
+                  {isManagingPosts ? "Saving..." : "YOU FOUND IT!"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <article className="post-detail section-reveal" aria-labelledby="detail-pet-name">
         <nav className="detail-breadcrumb" aria-label="Breadcrumb">
           <Link to="/">Browse pets</Link>
@@ -287,6 +366,23 @@ export default function PostDetailPage() {
               It is not visible on the public board until approved. You will get an update soon. If we need more
               information, staff may contact you using the email or phone on this listing.
             </p>
+          </div>
+        ) : null}
+
+        {isReunited ? (
+          <div className="detail-reunited-banner panel-soft section-reveal" role="status">
+            <p className="detail-reunited-title">YOU FOUND IT! 🎉</p>
+            <p className="detail-reunited-text">
+              Congratulations on the reunion. This listing is now archived in the admin founded-pets section.
+            </p>
+            {post.reunionDetails ? <p className="detail-reunited-note">"{post.reunionDetails}"</p> : null}
+          </div>
+        ) : null}
+
+        {showReunionSuccess ? (
+          <div className="detail-reunited-success panel-soft section-reveal" role="status">
+            <strong>YOU FOUND IT!</strong> Amazing work helping this pet get home. This listing has been moved out of
+            the public feed.
           </div>
         ) : null}
 
@@ -401,57 +497,105 @@ export default function PostDetailPage() {
               </section>
             ) : null}
 
-            <section className="detail-cta-block panel-soft section-reveal" aria-labelledby="cta-heading">
-              <h2 id="cta-heading" className="sr-only">
-                Next steps
+            <section
+              className={`detail-cta-block detail-cta-block--prominent panel-soft section-reveal detail-cta-block--type-${post.postType}`}
+              aria-labelledby="cta-heading"
+            >
+              <h2 id="cta-heading" className="detail-cta-section-title">
+                {isOwnListing ? "Your listing" : "Next step"}
               </h2>
-              <div className="detail-cta-row">
-                {mailtoHref ? (
-                  <a className="btn btn-primary detail-cta-mail" href={mailtoHref}>
-                    Send email
-                  </a>
-                ) : null}
-                {telHref ? (
-                  <a className="btn btn-secondary detail-cta-phone" href={telHref}>
-                    Call
-                  </a>
-                ) : null}
-                {showContactInquiry ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary detail-cta-message"
-                    onClick={() => setContactInquiryOpen(true)}
-                  >
-                    {cta.messageLabel}
-                  </button>
-                ) : null}
-                {canMessage ? (
-                  <button
-                    type="button"
-                    className="btn btn-accent detail-cta-private-chat"
-                    onClick={() => setConversationOpen(true)}
-                  >
-                    Private chat
-                  </button>
-                ) : null}
-              </div>
-              {!token && showContactInquiry ? (
+              {!isOwnListing ? (
+                <>
+                  <p className="detail-cta-headline">{cta.headline}</p>
+                  <p className="detail-cta-sub muted">{cta.subline}</p>
+                </>
+              ) : (
+                <p className="detail-cta-sub muted">
+                  {isPendingReview
+                    ? "When your listing is approved, visitors can reach you from this page. Keep an eye on your email and phone for messages from staff if anything is unclear."
+                    : "This is your listing — people can use the options below to reach you when it makes sense."}
+                </p>
+              )}
+
+              {!isOwnListing ? (
+                <div className="detail-cta-primary-row">
+                  {showContactInquiry ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary detail-cta-main"
+                      onClick={() => setContactInquiryOpen(true)}
+                    >
+                      {cta.messageLabel}
+                    </button>
+                  ) : null}
+                  {canMessage ? (
+                    <button
+                      type="button"
+                      className="btn btn-accent detail-cta-chat"
+                      onClick={() => setConversationOpen(true)}
+                    >
+                      Private chat
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {!isOwnListing && (mailtoHref || telHref) ? (
+                <div className="detail-cta-secondary-row" role="group" aria-label="Other ways to reach out">
+                  {mailtoHref ? (
+                    <a className="btn btn-secondary detail-cta-secondary" href={mailtoHref}>
+                      Email
+                    </a>
+                  ) : null}
+                  {telHref ? (
+                    <a className="btn btn-secondary detail-cta-secondary" href={telHref}>
+                      Call
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {!token && showContactInquiry && !isOwnListing ? (
                 <p className="detail-cta-hint muted">
-                  Use <strong>{cta.messageLabel}</strong> to reach out by email (simulated). <strong>Sign in</strong> for
-                  private in-app chat with the poster.
+                  <strong>{cta.messageLabel}</strong> opens a guided note (simulated email).{" "}
+                  <Link className="detail-cta-inline-link" to={`/login?from=${encodeURIComponent(`/post/${post.petPostId}`)}`}>
+                    Sign in
+                  </Link>{" "}
+                  for private in-app chat with the poster.
+                </p>
+              ) : null}
+              {token && showContactInquiry && !isOwnListing ? (
+                <p className="detail-cta-hint muted">
+                  {cta.messageHint} Private chat works best for quick back-and-forth.
                 </p>
               ) : null}
               {token && isOwnListing ? (
                 <p className="detail-cta-hint muted">
-                  {isPendingReview
-                    ? "When your listing is approved, visitors can reach you from this page. Keep an eye on your email and phone for messages from staff if anything is unclear."
-                    : "This is your listing — watchers can contact you from here."}
+                  You will see inquiries here once your listing is live. Comments appear in the section below.
                 </p>
               ) : null}
-              {token && showContactInquiry && !isOwnListing ? (
-                <p className="detail-cta-hint muted">{cta.messageHint} Use private chat for back-and-forth messages.</p>
-              ) : null}
             </section>
+
+            {canManageListing ? (
+              <div className="detail-owner-actions card-actions" role="group" aria-label="Owner actions">
+                <button type="button" className="btn" disabled={isManagingPosts} onClick={() => setEditingPost(post)}>
+                  Edit listing
+                </button>
+                {!isReunited ? (
+                  <button
+                    type="button"
+                    className="btn btn-success"
+                    disabled={isManagingPosts}
+                    onClick={() => {
+                      setReunionDetails(post.reunionDetails ?? "");
+                      setReunionModalOpen(true);
+                    }}
+                  >
+                    Mark pet as found
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             {isAdmin ? (
               <div className="detail-admin card-actions" role="group" aria-label="Moderation actions">
@@ -460,9 +604,6 @@ export default function PostDetailPage() {
                 </button>
                 <button type="button" className="btn btn-danger" disabled={isManagingPosts} onClick={() => handleModerate(2)}>
                   Reject
-                </button>
-                <button type="button" className="btn" disabled={isManagingPosts} onClick={() => setEditingPost(post)}>
-                  Edit
                 </button>
                 <button type="button" className="btn btn-danger" disabled={isManagingPosts} onClick={handleDelete}>
                   Delete
