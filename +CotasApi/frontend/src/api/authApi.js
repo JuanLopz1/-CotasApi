@@ -1,8 +1,9 @@
 const AUTH_STORAGE_KEY = "cotas_auth_user";
+const API_BASE = "https://cotasapi-jdlop-acarexacb9hkh3d6.centralus-01.azurewebsites.net/";
 
 /** Same paths as ASP.NET Core AuthController (case-insensitive on server). */
-const AUTH_REGISTER = "/api/auth/register";
-const AUTH_LOGIN = "/api/auth/login";
+const AUTH_REGISTER = `${API_BASE}api/auth/register`;
+const AUTH_LOGIN = `${API_BASE}api/auth/login`;
 
 async function readAuthError(response) {
   const text = (await response.text()).trim();

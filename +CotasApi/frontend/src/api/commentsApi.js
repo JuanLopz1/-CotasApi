@@ -1,3 +1,5 @@
+const API_BASE = "https://cotasapi-jdlop-acarexacb9hkh3d6.centralus-01.azurewebsites.net/";
+
 async function handleJson(response) {
   if (!response.ok) {
     const message = await response.text();
@@ -15,14 +17,14 @@ function authHeaders(token) {
 }
 
 export async function getComments(petPostId, token) {
-  const response = await fetch(`/api/petposts/${petPostId}/comments`, {
+  const response = await fetch(`${API_BASE}api/petposts/${petPostId}/comments`, {
     headers: authHeaders(token)
   });
   return handleJson(response);
 }
 
 export async function postComment(petPostId, { authorName, content }, token) {
-  const response = await fetch(`/api/petposts/${petPostId}/comments`, {
+  const response = await fetch(`${API_BASE}api/petposts/${petPostId}/comments`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -34,7 +36,7 @@ export async function postComment(petPostId, { authorName, content }, token) {
 }
 
 export async function deleteComment(petPostId, commentId, token) {
-  const response = await fetch(`/api/petposts/${petPostId}/comments/${commentId}`, {
+  const response = await fetch(`${API_BASE}api/petposts/${petPostId}/comments/${commentId}`, {
     method: "DELETE",
     headers: authHeaders(token)
   });

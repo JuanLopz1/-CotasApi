@@ -1,4 +1,5 @@
-const API_BASE_URL = "/api/PetPosts";
+const API_BASE = "https://cotasapi-jdlop-acarexacb9hkh3d6.centralus-01.azurewebsites.net/";
+const API_BASE_URL = `${API_BASE}api/PetPosts`;
 
 function buildQuery(filters) {
   const safe = filters ?? {};

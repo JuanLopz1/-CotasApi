@@ -1,3 +1,5 @@
+const API_BASE = "https://cotasapi-jdlop-acarexacb9hkh3d6.centralus-01.azurewebsites.net/";
+
 async function handleJson(response) {
   if (!response.ok) {
     const message = await response.text();
@@ -7,14 +9,14 @@ async function handleJson(response) {
 }
 
 export async function getMyConversations(token) {
-  const response = await fetch("/api/conversations", {
+  const response = await fetch(`${API_BASE}api/conversations`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return handleJson(response);
 }
 
 export async function startConversation(petPostId, token) {
-  const response = await fetch("/api/conversations/start", {
+  const response = await fetch(`${API_BASE}api/conversations/start`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -26,14 +28,14 @@ export async function startConversation(petPostId, token) {
 }
 
 export async function getConversationMessages(conversationId, token) {
-  const response = await fetch(`/api/conversations/${conversationId}/messages`, {
+  const response = await fetch(`${API_BASE}api/conversations/${conversationId}/messages`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return handleJson(response);
 }
 
 export async function sendConversationMessage(conversationId, content, token) {
-  const response = await fetch(`/api/conversations/${conversationId}/messages`, {
+  const response = await fetch(`${API_BASE}api/conversations/${conversationId}/messages`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

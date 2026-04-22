@@ -41,9 +41,15 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("DevFrontend", policy =>
+    options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174")
+        policy.WithOrigins(
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:5174"
+            // luego aquí agregas tu dominio de Vercel y juanlopez.ca
+            )
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -51,26 +57,19 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    // Root has no SPA; send developers to Swagger instead of a blank 404.
-    app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 var imagesPath = Path.Combine(app.Environment.ContentRootPath, "img");
 Directory.CreateDirectory(imagesPath);
+
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(imagesPath),
     RequestPath = "/img"
 });
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseCors("DevFrontend");
-}
+app.UseCors("Frontend");
 
 app.UseHttpsRedirection();
 
@@ -79,5 +78,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
+
 _CotasInitializer.Initialize(app.Services);
+
 app.Run();
