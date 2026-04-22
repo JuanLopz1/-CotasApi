@@ -17,6 +17,15 @@ const initialForm = {
 };
 
 const OTHERS_VALUE = 3;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function requiredLabel(text) {
+  return (
+    <>
+      {text} <span className="field-required" aria-hidden="true">*</span>
+    </>
+  );
+}
 
 function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
   const navigate = useNavigate();
@@ -50,8 +59,33 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
     setFieldError(null);
 
     const petCategory = Number(formData.petCategory);
+    if (!formData.title.trim()) {
+      setFieldError({ key: "title", message: "Title is required." });
+      return;
+    }
+
+    if (!formData.petName.trim()) {
+      setFieldError({ key: "petName", message: "Pet name is required." });
+      return;
+    }
+
+    if (formData.postType === "" || formData.postType === undefined || formData.postType === null) {
+      setFieldError({ key: "postType", message: "Post type is required." });
+      return;
+    }
+
+    if (formData.petCategory === "" || formData.petCategory === undefined || formData.petCategory === null) {
+      setFieldError({ key: "petCategory", message: "Pet category is required." });
+      return;
+    }
+
     if (petCategory === OTHERS_VALUE && !formData.petKindLabel.trim()) {
       setFieldError({ key: "petKind", message: 'Please describe the animal when you choose "Other".' });
+      return;
+    }
+
+    if (!formData.location.trim()) {
+      setFieldError({ key: "location", message: "Location is required." });
       return;
     }
 
@@ -60,6 +94,19 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
         key: "contact",
         message: "Contact email is required so people can reach you."
       });
+      return;
+    }
+
+    if (!EMAIL_RE.test(formData.contactEmail.trim())) {
+      setFieldError({
+        key: "contact",
+        message: "Please enter a valid email address."
+      });
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      setFieldError({ key: "description", message: "Description is required." });
       return;
     }
 
@@ -90,6 +137,7 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
       if (ok) {
         setFormData(initialForm);
         setImageFile(null);
+        setFieldError(null);
         if (newPostId) {
           navigate(`/post/${newPostId}`, { replace: true });
         } else if (navigateAfterSuccess) {
@@ -123,28 +171,41 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
         ) : null}
 
         <label className="field">
-          <span>Title</span>
+          <span>{requiredLabel("Title")}</span>
           <input
             required
             value={formData.title}
             onChange={(event) => handleChange("title", event.target.value)}
+            aria-invalid={fieldError?.key === "title" ? "true" : undefined}
           />
+          {fieldError?.key === "title" ? (
+            <span className="form-error field-error-inline" role="alert">
+              {fieldError.message}
+            </span>
+          ) : null}
         </label>
 
         <label className="field">
-          <span>Pet name</span>
+          <span>{requiredLabel("Pet name")}</span>
           <input
             required
             value={formData.petName}
             onChange={(event) => handleChange("petName", event.target.value)}
+            aria-invalid={fieldError?.key === "petName" ? "true" : undefined}
           />
+          {fieldError?.key === "petName" ? (
+            <span className="form-error field-error-inline" role="alert">
+              {fieldError.message}
+            </span>
+          ) : null}
         </label>
 
         <label className="field">
-          <span>Post type</span>
+          <span>{requiredLabel("Post type")}</span>
           <select
             value={formData.postType}
             onChange={(event) => handleChange("postType", event.target.value)}
+            aria-invalid={fieldError?.key === "postType" ? "true" : undefined}
           >
             {postTypeOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -152,13 +213,19 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
               </option>
             ))}
           </select>
+          {fieldError?.key === "postType" ? (
+            <span className="form-error field-error-inline" role="alert">
+              {fieldError.message}
+            </span>
+          ) : null}
         </label>
 
         <label className="field">
-          <span>Pet category</span>
+          <span>{requiredLabel("Pet category")}</span>
           <select
             value={formData.petCategory}
             onChange={(event) => handleChange("petCategory", event.target.value)}
+            aria-invalid={fieldError?.key === "petCategory" ? "true" : undefined}
           >
             {petCategoryOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -166,11 +233,16 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
               </option>
             ))}
           </select>
+          {fieldError?.key === "petCategory" ? (
+            <span className="form-error field-error-inline" role="alert">
+              {fieldError.message}
+            </span>
+          ) : null}
         </label>
 
         {Number(formData.petCategory) === OTHERS_VALUE ? (
           <label className="field field-full">
-            <span>Describe the animal</span>
+            <span>{requiredLabel("Describe the animal")}</span>
             <input
               required
               value={formData.petKindLabel}
@@ -204,12 +276,18 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
         )}
 
         <label className="field">
-          <span>Location</span>
+          <span>{requiredLabel("Location")}</span>
           <input
             required
             value={formData.location}
             onChange={(event) => handleChange("location", event.target.value)}
+            aria-invalid={fieldError?.key === "location" ? "true" : undefined}
           />
+          {fieldError?.key === "location" ? (
+            <span className="form-error field-error-inline" role="alert">
+              {fieldError.message}
+            </span>
+          ) : null}
         </label>
 
         <h3 className="field-full form-section-title">Contact for this listing</h3>
@@ -218,7 +296,7 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
         </p>
 
         <label className="field">
-          <span>Contact email</span>
+          <span>{requiredLabel("Contact email")}</span>
           <input
             required
             type="email"
@@ -264,13 +342,19 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
         </label>
 
         <label className="field field-full">
-          <span>Description</span>
+          <span>{requiredLabel("Description")}</span>
           <textarea
             required
             rows={4}
             value={formData.description}
             onChange={(event) => handleChange("description", event.target.value)}
+            aria-invalid={fieldError?.key === "description" ? "true" : undefined}
           />
+          {fieldError?.key === "description" ? (
+            <span className="form-error field-error-inline" role="alert">
+              {fieldError.message}
+            </span>
+          ) : null}
         </label>
 
         <label className="field">
@@ -294,6 +378,9 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
         <button className="btn btn-primary form-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Creating…" : "Create post"}
         </button>
+        <p className="field-full muted form-required-note">
+          Fields marked with <span className="field-required">*</span> are required.
+        </p>
       </form>
     </section>
   );

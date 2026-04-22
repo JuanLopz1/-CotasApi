@@ -628,6 +628,11 @@ textarea:focus {
   color: var(--text-muted);
 }
 
+.field-required {
+  color: color-mix(in srgb, var(--rejected) 65%, var(--text));
+  font-weight: 700;
+}
+
 .field-full {
   grid-column: 1 / -1;
 }
@@ -2506,6 +2511,11 @@ textarea {
 .field-hint {
   font-size: 0.78rem;
   color: #8a7d72;
+}
+
+.form-required-note {
+  margin: -0.2rem 0 0;
+  font-size: 0.82rem;
 }
 
 .checkbox-field {

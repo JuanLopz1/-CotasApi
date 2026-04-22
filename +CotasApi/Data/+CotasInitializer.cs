@@ -349,12 +349,12 @@ namespace _CotasApi.Data
         {
             var cities = new[]
             {
-                "Santo Domingo",
-                "Santiago",
-                "La Vega",
-                "San Cristobal",
-                "Puerto Plata",
-                "Bavaro"
+                "Niagara Falls",
+                "Welland",
+                "Toronto",
+                "St.Catherines",
+                "Burlington",
+                "Danforth"
             };
 
             return cities[index % cities.Length];

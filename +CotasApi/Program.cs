@@ -10,9 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
+// Database Configuration
 builder.Services.AddDbContext<_CotasContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// JWT Settings
 var jwtIssuer = builder.Configuration["JwtSettings:Issuer"] ?? string.Empty;
 var jwtAudience = builder.Configuration["JwtSettings:Audience"] ?? string.Empty;
 var jwtSecret = builder.Configuration["JwtSettings:SecretKey"] ?? string.Empty;
@@ -33,22 +35,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
-
 builder.Services.AddScoped<JwtTokenService>();
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// --- ADJUSTMENT 1: PRODUCTION CORS ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
         policy.WithOrigins(
                 "http://localhost:5173",
-                "http://localhost:5174",
-                "http://127.0.0.1:5173",
-                "http://127.0.0.1:5174"
-            // luego aquí agregas tu dominio de Vercel y juanlopez.ca
+                "https://cotas.juanlopez.tech" // Your production domain
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -60,8 +58,9 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+// --- ADJUSTMENT 2: STATIC FILES & DIRECTORIES ---
 var imagesPath = Path.Combine(app.Environment.ContentRootPath, "img");
-Directory.CreateDirectory(imagesPath);
+if (!Directory.Exists(imagesPath)) Directory.CreateDirectory(imagesPath);
 
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -70,16 +69,29 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseCors("Frontend");
-
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
-_CotasInitializer.Initialize(app.Services);
+// --- ADJUSTMENT 3: DB INITIALIZER & SEEDING ---
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<_CotasContext>();
+        // Ensure database is created and seed data is applied
+        context.Database.EnsureCreated();
+        _CotasInitializer.Initialize(services);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
 
 app.Run();
