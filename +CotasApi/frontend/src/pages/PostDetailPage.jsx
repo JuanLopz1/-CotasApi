@@ -12,6 +12,7 @@ import {
   updatePetPost,
   updatePetPostStatus
 } from "../api/petPostsApi";
+import ContactInquiryModal from "../components/ContactInquiryModal";
 import ConversationModal from "../components/ConversationModal";
 import PetPostEditModal from "../components/PetPostEditModal";
 import PostCommentsSection from "../components/PostCommentsSection";
@@ -53,7 +54,7 @@ function ctaForPostType(postType) {
     };
   }
   return {
-    messageLabel: "Message about adoption",
+    messageLabel: "Contact owner",
     messageHint: "Introduce yourself and ask how to move forward with adoption."
   };
 }
@@ -75,6 +76,7 @@ export default function PostDetailPage() {
   const [loadState, setLoadState] = useState("loading");
   const [imageBroken, setImageBroken] = useState(false);
   const [conversationOpen, setConversationOpen] = useState(false);
+  const [contactInquiryOpen, setContactInquiryOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [isManagingPosts, setIsManagingPosts] = useState(false);
 
@@ -161,6 +163,11 @@ export default function PostDetailPage() {
 
   async function handleToggleLike() {
     if (!post) return;
+    if (!token) {
+      showToast("Sign in to like adoption posts.", "info");
+      navigate(`/login?from=${encodeURIComponent(`/post/${post.petPostId}`)}`);
+      return;
+    }
     try {
       const result = await togglePetLike(post.petPostId, clientId);
       setPost((previous) =>
@@ -234,6 +241,8 @@ export default function PostDetailPage() {
   const isAdoption = post.postType === 0;
   const isOwnListing = uid !== null && uid === post.userId;
   const canMessage = Boolean(token) && !isOwnListing;
+  const showContactInquiry = !isOwnListing;
+  const isPendingReview = post.status === 0;
 
   return (
     <>
@@ -246,6 +255,13 @@ export default function PostDetailPage() {
           onSave={handleSaveEdit}
         />
       ) : null}
+
+      <ContactInquiryModal
+        open={contactInquiryOpen}
+        petName={post.petName}
+        leadHint={cta.messageHint}
+        onClose={() => setContactInquiryOpen(false)}
+      />
 
       <ConversationModal
         open={conversationOpen}
@@ -263,6 +279,16 @@ export default function PostDetailPage() {
           </span>
           <span className="muted">{post.petName}</span>
         </nav>
+
+        {isOwnListing && isPendingReview ? (
+          <div className="detail-owner-review-banner panel-soft section-reveal" role="status">
+            <p className="detail-owner-review-title">Your listing is in review</p>
+            <p className="detail-owner-review-text muted">
+              It is not visible on the public board until approved. You will get an update soon. If we need more
+              information, staff may contact you using the email or phone on this listing.
+            </p>
+          </div>
+        ) : null}
 
         <div className="detail-share-row">
           <button type="button" className="btn ghost-btn detail-copy-link-btn" onClick={handleCopyListingLink}>
@@ -390,21 +416,41 @@ export default function PostDetailPage() {
                     Call
                   </a>
                 ) : null}
-                {canMessage ? (
-                  <button type="button" className="btn btn-accent detail-cta-message" onClick={() => setConversationOpen(true)}>
+                {showContactInquiry ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary detail-cta-message"
+                    onClick={() => setContactInquiryOpen(true)}
+                  >
                     {cta.messageLabel}
                   </button>
                 ) : null}
+                {canMessage ? (
+                  <button
+                    type="button"
+                    className="btn btn-accent detail-cta-private-chat"
+                    onClick={() => setConversationOpen(true)}
+                  >
+                    Private chat
+                  </button>
+                ) : null}
               </div>
-              {!token ? (
+              {!token && showContactInquiry ? (
                 <p className="detail-cta-hint muted">
-                  <strong>Sign in</strong> (top right) to send private messages about this listing.
+                  Use <strong>{cta.messageLabel}</strong> to reach out by email (simulated). <strong>Sign in</strong> for
+                  private in-app chat with the poster.
                 </p>
-              ) : isOwnListing ? (
-                <p className="detail-cta-hint muted">This is your listing — watchers will message you here.</p>
-              ) : (
-                <p className="detail-cta-hint muted">{cta.messageHint}</p>
-              )}
+              ) : null}
+              {token && isOwnListing ? (
+                <p className="detail-cta-hint muted">
+                  {isPendingReview
+                    ? "When your listing is approved, visitors can reach you from this page. Keep an eye on your email and phone for messages from staff if anything is unclear."
+                    : "This is your listing — watchers can contact you from here."}
+                </p>
+              ) : null}
+              {token && showContactInquiry && !isOwnListing ? (
+                <p className="detail-cta-hint muted">{cta.messageHint} Use private chat for back-and-forth messages.</p>
+              ) : null}
             </section>
 
             {isAdmin ? (
@@ -426,7 +472,12 @@ export default function PostDetailPage() {
           </div>
         </div>
 
-        <PostCommentsSection petPostId={post.petPostId} token={token} isAdmin={isAdmin} />
+        <PostCommentsSection
+          petPostId={post.petPostId}
+          token={token}
+          isAdmin={isAdmin}
+          authorNameDefault={currentUser?.name ?? currentUser?.Name ?? ""}
+        />
       </article>
     </>
   );

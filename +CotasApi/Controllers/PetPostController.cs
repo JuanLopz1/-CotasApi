@@ -56,6 +56,37 @@ namespace _CotasApi.Controllers
             return posts.Select(post => ToDto(post, clientId)).ToList();
         }
 
+        // GET: api/petposts/mine
+        [HttpGet("mine")]
+        [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<PetPostDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<IEnumerable<PetPostDto>>> GetMyPetPosts([FromQuery] string? clientId)
+        {
+            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("sub")?.Value;
+
+            if (!int.TryParse(idClaim, out var userId) || userId <= 0)
+            {
+                return Unauthorized();
+            }
+
+            var exists = await _context.Users.AnyAsync(u => u.UserId == userId);
+            if (!exists)
+            {
+                return Unauthorized();
+            }
+
+            var posts = await _context.PetPosts
+                .AsNoTracking()
+                .Include(p => p.Likes)
+                .Where(p => p.UserId == userId)
+                .OrderByDescending(p => p.DatePosted)
+                .ToListAsync();
+
+            return Ok(posts.Select(p => ToDto(p, clientId)).ToList());
+        }
+
         // GET: api/petposts/5
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(PetPostDto), StatusCodes.Status200OK)]

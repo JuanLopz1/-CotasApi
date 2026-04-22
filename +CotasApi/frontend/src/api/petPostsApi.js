@@ -42,6 +42,23 @@ export async function getPetPosts(filters, token) {
   return handleResponse(response);
 }
 
+export async function getMyPetPosts(clientId, token) {
+  const params = new URLSearchParams();
+  if (clientId) {
+    params.set("clientId", clientId);
+  }
+  const query = params.toString();
+  const suffix = query ? `?${query}` : "";
+
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/mine${suffix}`, { headers });
+  return handleResponse(response);
+}
+
 export async function getPetPost(id, clientId, token) {
   const params = new URLSearchParams();
   if (clientId) {
@@ -256,13 +273,13 @@ export function petCategoryLabel(post) {
 }
 
 export const statusOptions = [
-  { value: 0, label: "Pending" },
+  { value: 0, label: "In review" },
   { value: 1, label: "Approved" },
   { value: 2, label: "Rejected" }
 ];
 
 export function statusPresentation(post) {
-  const pending = { label: "Pending review", className: "badge-pending" };
+  const pending = { label: "In review", className: "badge-pending" };
   const rejected = { label: "Rejected", className: "badge-rejected" };
 
   if (post.status === 0) {

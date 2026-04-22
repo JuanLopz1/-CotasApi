@@ -9,13 +9,17 @@ export default function CreatePostPage() {
 
   async function handleCreatePost(postData) {
     try {
-      await createPetPost(postData, currentUser?.token);
-      showToast("Post created successfully.", "success");
+      const created = await createPetPost(postData, currentUser?.token);
+      const petPostId = created?.petPostId ?? created?.PetPostId;
+      showToast(
+        "Listing submitted. Your post is in review and is not public yet. You will get an update soon. If we need anything, staff may contact you using the email or phone on your listing.",
+        "success"
+      );
       bumpHomeList?.();
-      return true;
+      return { success: true, petPostId };
     } catch {
       showToast("Something went wrong. Try again.", "error");
-      return false;
+      return { success: false };
     }
   }
 
@@ -25,11 +29,11 @@ export default function CreatePostPage() {
         <div className="section-head">
           <h1 id="create-page-heading">Create a listing</h1>
           <p className="muted create-page-lead">
-            Share adoption, lost, or found information. Your listing helps people take clear next steps.
+            Share adoption, lost, or found information. New listings are reviewed before they appear on the public board.
           </p>
         </div>
       </section>
-      <PetPostForm onSubmit={handleCreatePost} currentUser={currentUser} navigateAfterSuccess="/" />
+      <PetPostForm onSubmit={handleCreatePost} currentUser={currentUser} />
     </div>
   );
 }

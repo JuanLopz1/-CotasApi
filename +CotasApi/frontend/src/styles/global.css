@@ -237,6 +237,51 @@ button {
   min-width: 0;
 }
 
+@keyframes gridFilterSweep {
+  from {
+    opacity: 0.88;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-grid--filter-sweep {
+  animation: gridFilterSweep 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes messagesInboxCardIn {
+  from {
+    opacity: 0.88;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.messages-inbox-card--enter {
+  animation: messagesInboxCardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes conversationBubbleIn {
+  from {
+    opacity: 0.88;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.conversation-bubble--enter {
+  animation: conversationBubbleIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 .section-reveal {
   animation: sectionReveal 0.55s ease both;
 }
@@ -615,6 +660,12 @@ textarea {
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 10px 18px rgba(64, 45, 29, 0.15);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(64, 45, 29, 0.12);
+  opacity: 0.94;
 }
 
 .btn-primary {
@@ -1098,6 +1149,33 @@ textarea {
   transition: color var(--transition);
 }
 
+.detail-owner-review-banner {
+  margin-bottom: 0.85rem;
+  padding: 0.95rem 1.05rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--pending) 35%, var(--border));
+  background: color-mix(in srgb, var(--pending) 12%, var(--surface));
+}
+
+.detail-owner-review-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.detail-owner-review-text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.profile-review-note {
+  margin: -0.25rem 0 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .detail-breadcrumb a:hover {
   color: var(--text);
 }
@@ -1562,6 +1640,353 @@ textarea {
   line-height: 1.5;
 }
 
+.profile-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.profile-page-head h1 {
+  margin: 0;
+  font-size: clamp(1.45rem, 3vw, 1.85rem);
+}
+
+.profile-page-lead {
+  margin: 0.25rem 0 0;
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.profile-section + .profile-section {
+  margin-top: 0.25rem;
+}
+
+.profile-saved-lead {
+  margin: -0.35rem 0 0.85rem;
+}
+
+.profile-account-card {
+  padding: 1.1rem 1.15rem;
+}
+
+.profile-account-section-title {
+  font-size: 1.12rem;
+  margin: 0 0 0.85rem;
+}
+
+.profile-account-dl {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.profile-account-dl div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.profile-account-dl dt {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.profile-account-dl dd {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.profile-account-actions {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.profile-section-link {
+  font-size: 0.9rem;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.profile-section-link:hover {
+  text-decoration: underline;
+}
+
+.profile-convo-preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.profile-convo-preview-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-convo-preview-item:first-child {
+  padding-top: 0.25rem;
+}
+
+.profile-convo-preview-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.profile-convo-preview-pet {
+  margin: 0;
+  font-weight: 650;
+}
+
+.profile-convo-preview-preview {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.profile-convo-preview-meta {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+}
+
+.profile-convo-preview-btn {
+  flex-shrink: 0;
+}
+
+.profile-empty-inline {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.about-page {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.about-hero {
+  padding: 1.35rem 1.45rem;
+  border-radius: var(--radius-md);
+}
+
+.about-kicker {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 0.4rem;
+}
+
+.about-title {
+  margin: 0;
+  font-size: clamp(1.45rem, 3.2vw, 1.9rem);
+  line-height: 1.22;
+}
+
+.about-lead {
+  margin: 0.85rem 0 0;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text) 88%, var(--text-muted));
+}
+
+.about-block h2 {
+  font-size: 1.12rem;
+  margin: 0 0 0.55rem;
+}
+
+.about-block p {
+  margin: 0;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text) 92%, var(--text-muted));
+}
+
+.about-flow-list,
+.about-checklist {
+  margin: 0.25rem 0 0;
+  padding-left: 1.15rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text) 92%, var(--text-muted));
+}
+
+.about-flow-list li + li,
+.about-checklist li + li {
+  margin-top: 0.5rem;
+}
+
+.about-mission {
+  padding: 1.1rem 1.2rem;
+  border-radius: var(--radius-md);
+}
+
+.about-mission h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.12rem;
+}
+
+.about-mission p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.about-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0 1.25rem;
+}
+
+.auth-page {
+  max-width: 26rem;
+  margin: 0 auto;
+}
+
+.auth-page-panel h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 1.7rem);
+}
+
+.auth-page-lead {
+  margin: 0.5rem 0 1rem;
+  line-height: 1.5;
+}
+
+.auth-page-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.auth-page-submit {
+  width: 100%;
+}
+
+.auth-page-switch {
+  margin: 1rem 0 0;
+  text-align: center;
+}
+
+.auth-page-demo {
+  margin: 0.85rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.auth-page-demo code {
+  font-size: 0.78rem;
+  padding: 0.12rem 0.28rem;
+  background: color-mix(in srgb, var(--text-muted) 12%, var(--surface));
+  border-radius: 4px;
+}
+
+.auth-panel-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.auth-nav-btn {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.88rem;
+}
+
+.auth-panel-user {
+  min-width: 0;
+  max-width: 11rem;
+}
+
+.auth-panel-user .auth-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-about-teaser {
+  margin: 0.65rem 0 0;
+  font-size: 0.95rem;
+}
+
+.hero-about-link {
+  color: var(--text);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hero-about-link:hover {
+  opacity: 0.9;
+}
+
+.comments-sign-in-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-md);
+  margin-top: 0.85rem;
+}
+
+.comments-sign-in-text {
+  margin: 0;
+}
+
+.post-card--clickable:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--secondary) 55%, transparent);
+  outline-offset: 3px;
+}
+
+.admin-pending-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+}
+
+.admin-pending-banner-text {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.admin-pending-banner-cta {
+  flex-shrink: 0;
+}
+
+.contact-inquiry-panel {
+  max-width: 28rem;
+}
+
+.contact-inquiry-lead {
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}
+
+.contact-inquiry-form {
+  margin-top: 0.25rem;
+}
+
+.contact-inquiry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  grid-column: 1 / -1;
+}
+
 .messages-guest-hint {
   margin: 0;
 }
@@ -1974,7 +2399,10 @@ a:focus-visible {
   .panel,
   .page-shell,
   .section-reveal,
-  .toast-wrap--visible {
+  .toast-wrap--visible,
+  .card-grid--filter-sweep,
+  .messages-inbox-card--enter,
+  .conversation-bubble--enter {
     animation: none !important;
   }
 
@@ -1984,6 +2412,7 @@ a:focus-visible {
   }
 
   .btn:hover:not(:disabled),
+  .btn:active:not(:disabled),
   .chip:hover,
   .post-card:hover {
     transform: none;

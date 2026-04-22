@@ -1,7 +1,43 @@
 const AUTH_STORAGE_KEY = "cotas_auth_user";
 
+/** Same paths as ASP.NET Core AuthController (case-insensitive on server). */
+const AUTH_REGISTER = "/api/auth/register";
+const AUTH_LOGIN = "/api/auth/login";
+
+async function readAuthError(response) {
+  const text = (await response.text()).trim();
+  const short = text.length > 280 ? `${text.slice(0, 280)}…` : text;
+  if (response.status === 404) {
+    return (
+      short ||
+      `Server returned 404 (Not Found). The register endpoint may be missing — stop and restart the API after rebuilding, ` +
+        `or open /swagger and confirm POST ${AUTH_REGISTER} exists.`
+    );
+  }
+  if (response.status === 401 || response.status === 400) {
+    return short || `${response.status} ${response.statusText}`;
+  }
+  return short || `${response.status} ${response.statusText}`;
+}
+
+export async function register(name, email, password) {
+  const response = await fetch(AUTH_REGISTER, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ name, email, password })
+  });
+
+  if (!response.ok) {
+    throw new Error(await readAuthError(response));
+  }
+
+  return response.json();
+}
+
 export async function login(email, password) {
-  const response = await fetch("/api/Auth/login", {
+  const response = await fetch(AUTH_LOGIN, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -10,8 +46,7 @@ export async function login(email, password) {
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Login failed.");
+    throw new Error(await readAuthError(response));
   }
 
   return response.json();

@@ -142,6 +142,13 @@ namespace _CotasApi.Controllers
 
                 lastByConv.TryGetValue(c.ConversationId, out var lastMsg);
 
+                string? preview = null;
+                if (lastMsg != null)
+                {
+                    var raw = lastMsg.Content?.Trim() ?? string.Empty;
+                    preview = raw.Length == 0 ? "(No text in message)" : PreviewText(lastMsg.Content);
+                }
+
                 result.Add(new ConversationInboxDto
                 {
                     ConversationId = c.ConversationId,
@@ -151,7 +158,7 @@ namespace _CotasApi.Controllers
                     OtherPartyName = otherName,
                     CreatedAt = c.CreatedAt,
                     LastMessageAt = lastMsg?.SentAt,
-                    LastMessagePreview = lastMsg != null ? PreviewText(lastMsg.Content) : null
+                    LastMessagePreview = preview
                 });
             }
 

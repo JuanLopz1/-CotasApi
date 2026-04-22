@@ -148,23 +148,33 @@ export default function ConversationModal({
                 {messages.length === 0 ? (
                   <p className="muted conversation-empty">Say hello — your first message opens the thread.</p>
                 ) : (
-                  messages.map((m) => (
-                    <article key={m.messageId} className="conversation-bubble">
-                      <p className="conversation-meta muted">
-                        <strong>{m.senderName}</strong>
-                        <span aria-hidden="true"> · </span>
-                        <time dateTime={m.sentAt}>
-                          {new Date(m.sentAt).toLocaleString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit"
-                          })}
-                        </time>
-                      </p>
-                      <p className="conversation-text">{m.content}</p>
-                    </article>
-                  ))
+                  messages.map((m, index) => {
+                    const messageId = m.messageId ?? m.MessageId;
+                    const senderName = m.senderName ?? m.SenderName ?? "User";
+                    const sentAt = m.sentAt ?? m.SentAt;
+                    const content = m.content ?? m.Content ?? "";
+                    return (
+                      <article
+                        key={messageId}
+                        className="conversation-bubble conversation-bubble--enter"
+                        style={{ animationDelay: `${Math.min(index * 38, 400)}ms` }}
+                      >
+                        <p className="conversation-meta muted">
+                          <strong>{senderName}</strong>
+                          <span aria-hidden="true"> · </span>
+                          <time dateTime={sentAt}>
+                            {new Date(sentAt).toLocaleString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })}
+                          </time>
+                        </p>
+                        <p className="conversation-text">{content.trim() ? content : "(No text)"}</p>
+                      </article>
+                    );
+                  })
                 )}
               </div>
               <form className="conversation-compose" onSubmit={handleSend}>

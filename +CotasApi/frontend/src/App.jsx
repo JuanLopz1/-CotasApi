@@ -6,10 +6,15 @@ import { ToastProvider } from "./context/ToastContext";
 import { getOrCreateClientId } from "./api/clientIdentity";
 import { loadAuthUser } from "./api/authApi";
 import { getPetPosts } from "./api/petPostsApi";
+import RequireAuth from "./components/RequireAuth";
+import AboutPage from "./pages/AboutPage";
 import HomePage from "./pages/HomePage";
 import CreatePostPage from "./pages/CreatePostPage";
 import PostDetailPage from "./pages/PostDetailPage";
+import LoginPage from "./pages/LoginPage";
 import MessagesPage from "./pages/MessagesPage";
+import ProfilePage from "./pages/ProfilePage";
+import RegisterPage from "./pages/RegisterPage";
 
 function App() {
   const clientId = useMemo(() => getOrCreateClientId(), []);
@@ -26,7 +31,10 @@ function App() {
     const user = loadAuthUser();
     getPetPosts({ status: "", postType: "", clientId }, user?.token)
       .then((posts) => setBoot({ status: "ready", posts }))
-      .catch(() => setBoot({ status: "error" }));
+      .catch(() => {
+        // Still open the app so the UI is not a blank / stuck screen if the API is down or unreachable.
+        setBoot({ status: "ready", posts: [] });
+      });
   }, [clientId]);
 
   useEffect(() => {
@@ -58,9 +66,15 @@ function App() {
                 />
               }
             />
-            <Route path="create" element={<CreatePostPage />} />
-            <Route path="messages" element={<MessagesPage />} />
+            <Route path="about" element={<AboutPage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="register" element={<RegisterPage />} />
             <Route path="post/:id" element={<PostDetailPage />} />
+            <Route element={<RequireAuth />}>
+              <Route path="create" element={<CreatePostPage />} />
+              <Route path="messages" element={<MessagesPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+            </Route>
           </Route>
         </Routes>
       </ToastProvider>

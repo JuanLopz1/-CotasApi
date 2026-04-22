@@ -68,7 +68,7 @@ namespace _CotasApi.Controllers
         }
 
         [HttpPost("/api/petposts/{petPostId:int}/comments")]
-        [AllowAnonymous]
+        [Authorize]
         [ProducesResponseType(typeof(PetPostCommentDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useState } from "react";
+import { Link } from "react-router-dom";
 import { deleteComment, getComments, postComment } from "../api/commentsApi";
 import { useToast } from "../context/ToastContext";
 
@@ -7,7 +8,12 @@ function formatCommentTime(iso) {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-export default function PostCommentsSection({ petPostId, token, isAdmin = false }) {
+export default function PostCommentsSection({
+  petPostId,
+  token,
+  isAdmin = false,
+  authorNameDefault = ""
+}) {
   const headingId = useId();
   const { showToast } = useToast();
   const [comments, setComments] = useState([]);
@@ -16,6 +22,14 @@ export default function PostCommentsSection({ petPostId, token, isAdmin = false 
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+
+  const loginReturn = `/post/${petPostId}`;
+
+  useEffect(() => {
+    if (authorNameDefault) {
+      setAuthorName((prev) => (prev ? prev : authorNameDefault));
+    }
+  }, [authorNameDefault]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -36,6 +50,10 @@ export default function PostCommentsSection({ petPostId, token, isAdmin = false 
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (!token) {
+      showToast("Sign in to post a comment.", "info");
+      return;
+    }
     const name = authorName.trim();
     const text = content.trim();
     if (!name || !text) return;
@@ -46,7 +64,7 @@ export default function PostCommentsSection({ petPostId, token, isAdmin = false 
       setContent("");
       showToast("Comment posted.", "success");
     } catch {
-      showToast("Could not post comment.", "error");
+      showToast("Could not post comment. Make sure you are signed in.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -74,7 +92,7 @@ export default function PostCommentsSection({ petPostId, token, isAdmin = false 
         Public notes &amp; questions
       </h2>
       <p className="muted comments-lead">
-        Share a sighting, ask if a pet is still available, or leave a helpful tip. Anyone can read these.
+        Everyone can read these threads. Sign in to add a note, ask a question, or share a sighting.
       </p>
 
       {loading ? (
@@ -82,7 +100,11 @@ export default function PostCommentsSection({ petPostId, token, isAdmin = false 
           Loading comments…
         </p>
       ) : comments.length === 0 ? (
-        <p className="muted comments-empty">No comments yet — be the first to add one.</p>
+        <p className="muted comments-empty">
+          {token
+            ? "No comments yet — be the first to add one."
+            : "No comments yet — sign in to start the conversation."}
+        </p>
       ) : (
         <ul className="comments-list">
           {comments.map((c) => (
@@ -111,32 +133,44 @@ export default function PostCommentsSection({ petPostId, token, isAdmin = false 
         </ul>
       )}
 
-      <form className="comments-form form-grid" onSubmit={handleSubmit}>
-        <label className="field">
-          <span>Your name</span>
-          <input
-            required
-            value={authorName}
-            onChange={(e) => setAuthorName(e.target.value)}
-            maxLength={80}
-            autoComplete="name"
-          />
-        </label>
-        <label className="field field-full">
-          <span>Comment</span>
-          <textarea
-            required
-            rows={3}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            maxLength={500}
-            placeholder="e.g. I saw this pet near the park yesterday evening."
-          />
-        </label>
-        <button type="submit" className="btn btn-secondary comments-submit" disabled={submitting}>
-          {submitting ? "Posting…" : "Post comment"}
-        </button>
-      </form>
+      {token ? (
+        <form className="comments-form form-grid" onSubmit={handleSubmit}>
+          <label className="field">
+            <span>Your name</span>
+            <input
+              required
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              maxLength={80}
+              autoComplete="name"
+            />
+          </label>
+          <label className="field field-full">
+            <span>Comment</span>
+            <textarea
+              required
+              rows={3}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              maxLength={500}
+              placeholder="e.g. I saw this pet near the park yesterday evening."
+            />
+          </label>
+          <button type="submit" className="btn btn-secondary comments-submit" disabled={submitting}>
+            {submitting ? "Posting…" : "Post comment"}
+          </button>
+        </form>
+      ) : (
+        <div className="comments-sign-in-hint panel-soft">
+          <p className="muted comments-sign-in-text">Sign in to add a public comment on this listing.</p>
+          <Link
+            className="btn btn-primary comments-sign-in-btn"
+            to={`/login?from=${encodeURIComponent(loginReturn)}`}
+          >
+            Sign in to comment
+          </Link>
+        </div>
+      )}
     </section>
   );
 }

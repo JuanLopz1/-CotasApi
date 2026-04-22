@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useOutletContext } from "react-router-dom";
+import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import {
   categorySlugForPost,
   deletePetPost,
@@ -29,7 +29,7 @@ function getApiFilters(filters) {
 }
 
 export default function HomePage({ initialPosts, listSeededRef, homeRefreshKey }) {
-  const location = useLocation();
+  const navigate = useNavigate();
   const { clientId, currentUser, isAdmin } = useOutletContext();
   const { showToast } = useToast();
 
@@ -48,13 +48,10 @@ export default function HomePage({ initialPosts, listSeededRef, homeRefreshKey }
     [filters]
   );
 
-  useEffect(() => {
-    if (location.hash === "#about") {
-      window.requestAnimationFrame(() => {
-        document.getElementById("about")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
-  }, [location.hash, location.key]);
+  const pendingModerationCount = useMemo(
+    () => (isAdmin ? posts.filter((p) => p.status === 0).length : 0),
+    [posts, isAdmin]
+  );
 
   const visiblePosts = useMemo(() => {
     const searchValue = filters.search.trim().toLowerCase();
@@ -196,6 +193,12 @@ export default function HomePage({ initialPosts, listSeededRef, homeRefreshKey }
   }
 
   async function handleToggleLike(id) {
+    const token = currentUser?.token ?? currentUser?.Token;
+    if (!token) {
+      showToast("Sign in to save hearts on adoption posts.", "info");
+      navigate("/login?from=/");
+      return;
+    }
     try {
       const result = await togglePetLike(id, clientId);
       setPosts((previous) =>
@@ -236,9 +239,13 @@ export default function HomePage({ initialPosts, listSeededRef, homeRefreshKey }
           <br />
           <span>a loving home</span>
         </h1>
-        <p id="about">
+        <p id="home-intro">
           Browse pets looking for adoption, report lost animals, and help reunite found pets with their families.
-          Open a listing to take the next step — sighting reports, reunion messages, or adoption contact.
+        </p>
+        <p className="hero-about-teaser">
+          <Link className="hero-about-link" to="/about">
+            Learn what +cotas is about
+          </Link>
         </p>
       </section>
 
@@ -247,6 +254,18 @@ export default function HomePage({ initialPosts, listSeededRef, homeRefreshKey }
         onFilterChange={handleFilterChange}
         onClearFilters={() => setFilters(initialFilters)}
       />
+
+      {isAdmin && pendingModerationCount > 0 ? (
+        <div className="admin-pending-banner panel-soft section-reveal" role="status">
+          <div className="admin-pending-banner-text">
+            <strong>{pendingModerationCount}</strong>{" "}
+            {pendingModerationCount === 1 ? "listing is" : "listings are"} waiting for review.
+          </div>
+          <button type="button" className="btn btn-secondary admin-pending-banner-cta" onClick={() => handleFilterChange("status", "0")}>
+            Show only in review
+          </button>
+        </div>
+      ) : null}
 
       <section className="panel home-listings-panel" id="browse-posts" aria-labelledby="posts-heading">
         <div className="section-head">
@@ -272,7 +291,10 @@ export default function HomePage({ initialPosts, listSeededRef, homeRefreshKey }
             </Link>
           </div>
         ) : (
-          <div className="card-grid">
+          <div
+            key={`${filters.status}-${filters.postType}-${filters.category}`}
+            className="card-grid card-grid--filter-sweep"
+          >
             {visiblePosts.map((post, index) => (
               <PetPostCard
                 key={post.petPostId}

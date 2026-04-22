@@ -12,6 +12,16 @@ function formatWhen(iso) {
     : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+/** API uses camelCase; tolerate PascalCase. Treat empty string as missing. */
+function inboxLastPreview(row) {
+  const raw = row.lastMessagePreview ?? row.LastMessagePreview ?? "";
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
+function inboxLastAt(row) {
+  return row.lastMessageAt ?? row.LastMessageAt ?? null;
+}
+
 export default function MessagesPage() {
   const { currentUser, isAdmin } = useOutletContext();
   const { showToast } = useToast();
@@ -50,27 +60,15 @@ export default function MessagesPage() {
   function openThread(row) {
     setModal({
       open: true,
-      conversationId: row.conversationId,
-      petPostId: row.petPostId,
-      petName: row.petName
+      conversationId: row.conversationId ?? row.ConversationId,
+      petPostId: row.petPostId ?? row.PetPostId,
+      petName: row.petName ?? row.PetName ?? "Pet"
     });
   }
 
   function closeModal() {
     setModal((m) => ({ ...m, open: false }));
     load();
-  }
-
-  if (!token) {
-    return (
-      <div className="panel empty-state empty-state--warm section-reveal" role="status">
-        <h1 className="empty-state-title">Messages</h1>
-        <p className="empty-state-text">Sign in to see your conversations about listings.</p>
-        <p className="muted messages-guest-hint">
-          Use <strong>Admin sign in</strong> in the top bar, then open this page again.
-        </p>
-      </div>
-    );
   }
 
   return (
@@ -110,27 +108,45 @@ export default function MessagesPage() {
           </div>
         ) : (
           <ul className="messages-inbox-list" aria-labelledby="messages-page-heading">
-            {rows.map((row) => (
-              <li key={row.conversationId} className="messages-inbox-card panel">
+            {rows.map((row, index) => {
+              const preview = inboxLastPreview(row);
+              const lastAt = inboxLastAt(row);
+              const hasMessage = Boolean(lastAt);
+              return (
+              <li
+                key={row.conversationId ?? row.ConversationId}
+                className="messages-inbox-card panel messages-inbox-card--enter"
+                style={{ animationDelay: `${Math.min(index * 55, 440)}ms` }}
+              >
                 <div className="messages-inbox-main">
-                  <p className="messages-inbox-pet">{row.petName}</p>
-                  {row.listingTitle ? <p className="messages-inbox-title muted">{row.listingTitle}</p> : null}
+                  <p className="messages-inbox-pet">{row.petName ?? row.PetName ?? "Pet"}</p>
+                  {(row.listingTitle ?? row.ListingTitle) ? (
+                    <p className="messages-inbox-title muted">{row.listingTitle ?? row.ListingTitle}</p>
+                  ) : null}
                   <p className="messages-inbox-with muted">
                     {isAdmin ? "Participants: " : "With: "}
-                    <span>{row.otherPartyName}</span>
+                    <span>{row.otherPartyName ?? row.OtherPartyName}</span>
                   </p>
-                  {row.lastMessagePreview ? (
-                    <p className="messages-inbox-preview">{row.lastMessagePreview}</p>
+                  {hasMessage ? (
+                    preview ? (
+                      <p className="messages-inbox-preview">{preview}</p>
+                    ) : (
+                      <p className="muted messages-inbox-preview messages-inbox-preview--fallback">
+                        (Preview unavailable — open thread to read the latest message.)
+                      </p>
+                    )
                   ) : (
-                    <p className="muted messages-inbox-preview">No messages yet — open to say hello.</p>
+                    <p className="muted messages-inbox-preview">No messages yet — open the thread to say hello.</p>
                   )}
                   <p className="messages-inbox-meta muted">
-                    {row.lastMessageAt ? (
+                    {lastAt ? (
                       <>
-                        Last message <time dateTime={row.lastMessageAt}>{formatWhen(row.lastMessageAt)}</time>
+                        Last message <time dateTime={lastAt}>{formatWhen(lastAt)}</time>
                       </>
                     ) : (
-                      <>Started <time dateTime={row.createdAt}>{formatWhen(row.createdAt)}</time></>
+                      <>
+                        Started <time dateTime={row.createdAt ?? row.CreatedAt}>{formatWhen(row.createdAt ?? row.CreatedAt)}</time>
+                      </>
                     )}
                   </p>
                 </div>
@@ -138,12 +154,13 @@ export default function MessagesPage() {
                   <button type="button" className="btn btn-primary" onClick={() => openThread(row)}>
                     Open thread
                   </button>
-                  <Link className="btn btn-secondary" to={`/post/${row.petPostId}`}>
+                  <Link className="btn btn-secondary" to={`/post/${row.petPostId ?? row.PetPostId}`}>
                     View listing
                   </Link>
                 </div>
               </li>
-            ))}
+            );
+            })}
           </ul>
         )}
       </div>

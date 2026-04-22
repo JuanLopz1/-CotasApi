@@ -22,23 +22,30 @@ export default function MainLayout({ clientId, bumpHomeList }) {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const isAdmin = isUserAdmin(currentUser);
 
+  const onAuthSuccess = useCallback(
+    (authUser) => {
+      saveAuthUser(authUser);
+      setCurrentUser(authUser);
+      const name = authUser.name ?? authUser.Name ?? "there";
+      showToast(`Welcome, ${name}.`, "success");
+      bumpHomeList?.();
+    },
+    [showToast, bumpHomeList]
+  );
+
   const handleLogin = useCallback(
     async (email, password) => {
       setIsLoggingIn(true);
       try {
         const authUser = await login(email, password);
-        saveAuthUser(authUser);
-        setCurrentUser(authUser);
-        showToast(`Welcome, ${authUser.name}.`, "success");
-        bumpHomeList?.();
+        onAuthSuccess(authUser);
       } catch (error) {
-        showToast(error?.message || "Login failed.", "error");
         throw error;
       } finally {
         setIsLoggingIn(false);
       }
     },
-    [showToast, bumpHomeList]
+    [onAuthSuccess]
   );
 
   const handleLogout = useCallback(() => {
@@ -56,13 +63,16 @@ export default function MainLayout({ clientId, bumpHomeList }) {
       isAdmin,
       onLogin: handleLogin,
       onLogout: handleLogout,
+      onAuthSuccess,
       bumpHomeList
     }),
-    [clientId, currentUser, isLoggingIn, isAdmin, handleLogin, handleLogout, bumpHomeList]
+    [clientId, currentUser, isLoggingIn, isAdmin, handleLogin, handleLogout, onAuthSuccess, bumpHomeList]
   );
 
   const mainClassName =
     location.pathname === "/" ? "page-shell page-shell--home" : "page-shell page-shell--inner";
+
+  const createPath = currentUser ? "/create" : "/login?from=%2Fcreate";
 
   return (
     <>
@@ -82,7 +92,7 @@ export default function MainLayout({ clientId, bumpHomeList }) {
               Browse pets
             </NavLink>
             <NavLink
-              to="/create"
+              to={createPath}
               className={({ isActive }) => (isActive ? "nav-link-active" : undefined)}
             >
               New post
@@ -95,25 +105,23 @@ export default function MainLayout({ clientId, bumpHomeList }) {
                 Messages
               </NavLink>
             ) : null}
-            <Link
-              to="/#about"
-              className={
-                location.pathname === "/" && location.hash === "#about" ? "nav-link-active" : undefined
-              }
-            >
+            {currentUser ? (
+              <NavLink
+                to="/profile"
+                className={({ isActive }) => (isActive ? "nav-link-active" : undefined)}
+              >
+                Profile
+              </NavLink>
+            ) : null}
+            <NavLink to="/about" className={({ isActive }) => (isActive ? "nav-link-active" : undefined)}>
               About
-            </Link>
+            </NavLink>
           </nav>
           <div className="nav-right">
-            <Link className="btn btn-primary nav-cta" to="/create">
+            <Link className="btn btn-primary nav-cta" to={createPath}>
               + Create listing
             </Link>
-            <AuthPanel
-              currentUser={currentUser}
-              isLoggingIn={isLoggingIn}
-              onLogin={handleLogin}
-              onLogout={handleLogout}
-            />
+            <AuthPanel currentUser={currentUser} onLogout={handleLogout} />
           </div>
         </header>
 

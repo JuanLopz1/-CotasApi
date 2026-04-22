@@ -18,7 +18,7 @@ const initialForm = {
 
 const OTHERS_VALUE = 3;
 
-function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess }) {
+function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
   const navigate = useNavigate();
   const errGeneralId = useId();
   const errPetKindId = useId();
@@ -65,7 +65,7 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess }) {
 
     setIsSubmitting(true);
     try {
-      const created = await onSubmit({
+      const submitResult = await onSubmit({
         title: formData.title.trim(),
         petName: formData.petName.trim(),
         postType: Number(formData.postType),
@@ -84,10 +84,15 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess }) {
         imageFile
       });
 
-      if (created) {
+      const ok = submitResult === true || submitResult?.success === true;
+      const newPostId = submitResult?.petPostId ?? submitResult?.PetPostId;
+
+      if (ok) {
         setFormData(initialForm);
         setImageFile(null);
-        if (navigateAfterSuccess) {
+        if (newPostId) {
+          navigate(`/post/${newPostId}`, { replace: true });
+        } else if (navigateAfterSuccess) {
           navigate(navigateAfterSuccess);
         }
       } else {
