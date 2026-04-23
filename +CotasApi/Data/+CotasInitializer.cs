@@ -27,6 +27,7 @@ namespace _CotasApi.Data
                 RemoveLogoPosts(context);
                 RemoveCommunityPetPlaceholderPosts(context);
                 SeedPetPostsFromImageFolder(context);
+                SeedEmergencyData(context);
                 ClearMissingLocalImageUrls(context, env);
             }
             catch (Exception ex)
@@ -244,6 +245,48 @@ namespace _CotasApi.Data
 
             context.PetPosts.RemoveRange(toRemove);
             context.SaveChanges();
+        }
+
+        private static void SeedEmergencyData(_CotasContext context)
+        {
+            var guestUser = context.Users.FirstOrDefault(u => u.Email == "guest@cotas.local");
+            if (guestUser == null) return;
+
+            if (!context.PetPosts.Any())
+            {
+                context.PetPosts.AddRange(new List<PetPost>
+                {
+                    new PetPost
+                    {
+                        Title = "Bruno is ready for adoption",
+                        PetName = "Bruno",
+                        PetCategory = PetCategory.Dogs,
+                        PostType = PostType.Adoption,
+                        Description = "A friendly dog looking for a home.",
+                        Location = "Welland",
+                        ContactEmail = "listings@cotas.demo",
+                        ImageUrl = "https://images.unsplash.com/photo-1543466835-00a7907e9de1",
+                        Status = PostStatus.Approved,
+                        DatePosted = DateTime.Now,
+                        UserId = guestUser.UserId
+                    },
+                    new PetPost
+                    {
+                        Title = "Lost Cat: Luna",
+                        PetName = "Luna",
+                        PetCategory = PetCategory.Cats,
+                        PostType = PostType.Lost,
+                        Description = "Lost near Niagara College. Please help!",
+                        Location = "Niagara Falls",
+                        ContactEmail = "help@cotas.demo",
+                        ImageUrl = "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
+                        Status = PostStatus.Approved,
+                        DatePosted = DateTime.Now,
+                        UserId = guestUser.UserId
+                    }
+                });
+                context.SaveChanges();
+            }
         }
 
         private static bool IsLogoImagePath(string path)

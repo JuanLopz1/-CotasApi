@@ -10,11 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-// Database Configuration
 builder.Services.AddDbContext<_CotasContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// JWT Settings
 var jwtIssuer = builder.Configuration["JwtSettings:Issuer"] ?? string.Empty;
 var jwtAudience = builder.Configuration["JwtSettings:Audience"] ?? string.Empty;
 var jwtSecret = builder.Configuration["JwtSettings:SecretKey"] ?? string.Empty;
@@ -39,7 +37,6 @@ builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// --- ADJUSTMENT 1: PRODUCTION CORS ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
@@ -58,7 +55,6 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// --- ADJUSTMENT 2: STATIC FILES & DIRECTORIES ---
 var imagesPath = Path.Combine(app.Environment.ContentRootPath, "img");
 if (!Directory.Exists(imagesPath)) Directory.CreateDirectory(imagesPath);
 
@@ -76,15 +72,11 @@ app.MapControllers();
 
 app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
-// --- ADJUSTMENT 3: DB INITIALIZER & SEEDING ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
-        var context = services.GetRequiredService<_CotasContext>();
-        // Ensure database is created and seed data is applied
-        context.Database.EnsureCreated();
         _CotasInitializer.Initialize(services);
     }
     catch (Exception ex)
