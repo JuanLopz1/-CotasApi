@@ -11,6 +11,8 @@ namespace _CotasApi.Data
             using var scope = serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<_CotasContext>();
             var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+            var configuration = scope.ServiceProvider.GetService<IConfiguration>();
+            var enableLegacyRecovery = configuration?.GetValue<bool?>("Seeding:EnableLegacyRecoveryPosts") ?? true;
 
             try
             {
@@ -30,6 +32,10 @@ namespace _CotasApi.Data
                 if (!HasPublicVisiblePosts(context))
                 {
                     SeedEmergencyData(context);
+                }
+                if (enableLegacyRecovery)
+                {
+                    SeedLegacyRecoveryPosts(context);
                 }
                 // Temporarily disabled for Azure fallback flow; re-enable when local /img publishing is stable.
                 // ClearMissingLocalImageUrls(context, env);
@@ -256,39 +262,291 @@ namespace _CotasApi.Data
             var guestUser = context.Users.FirstOrDefault(u => u.Email == "guest@cotas.local");
             if (guestUser == null) return;
 
-            if (!HasPublicVisiblePosts(context))
+            var added = false;
+            if (!context.PetPosts.Any(p => p.Title == "Bruno is ready for adoption"))
             {
-                context.PetPosts.AddRange(new List<PetPost>
+                context.PetPosts.Add(new PetPost
                 {
-                    new PetPost
-                    {
-                        Title = "Bruno is ready for adoption",
-                        PetName = "Bruno",
-                        PetCategory = PetCategory.Dogs,
-                        PostType = PostType.Adoption,
-                        Description = "A friendly dog looking for a home.",
-                        Location = "Welland",
-                        ContactEmail = "listings@cotas.demo",
-                        ImageUrl = "https://images.unsplash.com/photo-1543466835-00a7907e9de1",
-                        Status = PostStatus.Approved,
-                        DatePosted = DateTime.Now,
-                        UserId = guestUser.UserId
-                    },
-                    new PetPost
-                    {
-                        Title = "Lost Cat: Luna",
-                        PetName = "Luna",
-                        PetCategory = PetCategory.Cats,
-                        PostType = PostType.Lost,
-                        Description = "Lost near Niagara College. Please help!",
-                        Location = "Niagara Falls",
-                        ContactEmail = "help@cotas.demo",
-                        ImageUrl = "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
-                        Status = PostStatus.Approved,
-                        DatePosted = DateTime.Now,
-                        UserId = guestUser.UserId
-                    }
+                    Title = "Bruno is ready for adoption",
+                    PetName = "Bruno",
+                    PetCategory = PetCategory.Dogs,
+                    PostType = PostType.Adoption,
+                    Description = "A friendly dog looking for a home.",
+                    Location = "Welland",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1543466835-00a7907e9de1",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now,
+                    UserId = guestUser.UserId
                 });
+                added = true;
+            }
+
+            if (!context.PetPosts.Any(p => p.Title == "Lost Cat: Luna"))
+            {
+                context.PetPosts.Add(new PetPost
+                {
+                    Title = "Lost Cat: Luna",
+                    PetName = "Luna",
+                    PetCategory = PetCategory.Cats,
+                    PostType = PostType.Lost,
+                    Description = "Lost near Niagara College. Please help!",
+                    Location = "Niagara Falls",
+                    ContactEmail = "help@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now,
+                    UserId = guestUser.UserId
+                });
+                added = true;
+            }
+
+            if (added)
+            {
+                context.SaveChanges();
+            }
+        }
+
+        private static void SeedLegacyRecoveryPosts(_CotasContext context)
+        {
+            var guestUser = context.Users.FirstOrDefault(u => u.Email == "guest@cotas.local");
+            if (guestUser == null)
+            {
+                return;
+            }
+
+            var legacyPosts = new List<PetPost>
+            {
+                new PetPost
+                {
+                    Title = "Lost: Cat2",
+                    PetName = "Cat2",
+                    PetCategory = PetCategory.Cats,
+                    PostType = PostType.Lost,
+                    Description = "Cat2 was last seen nearby. Please contact us if you have any information.",
+                    Location = "Santiago",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-16),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Found pet: Dog1",
+                    PetName = "Dog1",
+                    PetCategory = PetCategory.Dogs,
+                    PostType = PostType.Found,
+                    Description = "Dog1 was found safe and is waiting to be reunited with the family.",
+                    Location = "La Vega",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1543466835-00a7907e9de1",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-15),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Dog2 is ready for adoption",
+                    PetName = "Lucas",
+                    PetCategory = PetCategory.Dogs,
+                    PostType = PostType.Adoption,
+                    Description = "Dog2 is friendly, healthy, and waiting for a loving family.",
+                    Location = "San Cristobal",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-14),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Lost: Dog3",
+                    PetName = "Dog3",
+                    PetCategory = PetCategory.Dogs,
+                    PostType = PostType.Lost,
+                    Description = "Dog3 was last seen nearby. Please contact us if you have any information.",
+                    Location = "Puerto Plata",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1561037404-61cd46aa615b",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-13),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Found pet: Dog4",
+                    PetName = "Dog4",
+                    PetCategory = PetCategory.Dogs,
+                    PostType = PostType.Found,
+                    Description = "Dog4 was found safe and is waiting to be reunited with the family.",
+                    Location = "Bavaro",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1517849845537-4d257902454a",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-12),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Found pet: Turtle1",
+                    PetName = "Marthin",
+                    PetCategory = PetCategory.Others,
+                    PostType = PostType.Found,
+                    Description = "Turtle1 was found safe and is waiting to be reunited with the family.",
+                    Location = "La Vega",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1552728089-57bdde30beb3",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-11),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Cute cat",
+                    PetName = "Milo",
+                    PetCategory = PetCategory.Cats,
+                    PostType = PostType.Adoption,
+                    Description = "My cat just gave birth this kitty, i need help to give it to someone who loves cats",
+                    Location = "Welland",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1574158622682-e40e69881006",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-10),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Jose Byron Is LOST",
+                    PetName = "Jose Byron",
+                    PetCategory = PetCategory.Others,
+                    PostType = PostType.Lost,
+                    Description = "Please help me to find my monkey donkey",
+                    Location = "Niagara Falls",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1540573133985-87b6da6d54a9",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-9),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "I found this bird",
+                    PetName = "Birdy",
+                    PetCategory = PetCategory.Birds,
+                    PostType = PostType.Found,
+                    Description = "Bird",
+                    Location = "NF",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1444464666168-49d633b86797",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-8),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "parrot looking for a family",
+                    PetName = "Martin",
+                    PetCategory = PetCategory.Birds,
+                    PostType = PostType.Adoption,
+                    Description = "Please let me know anything",
+                    Location = "Niagara Falls",
+                    ContactEmail = "jdlopz10@gmail.com",
+                    PreferredContact = PreferredContactMethod.Email,
+                    ImageUrl = "https://images.unsplash.com/photo-1522926193341-e9ffd686c60f",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-7),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Cat1 is ready for adoption",
+                    PetName = "Cat1",
+                    PetCategory = PetCategory.Cats,
+                    PostType = PostType.Adoption,
+                    Description = "Cat1 is friendly, healthy, and waiting for a loving family.",
+                    Location = "Santo Domingo",
+                    ContactEmail = "listings@cotas.demo",
+                    PreferredContact = PreferredContactMethod.Any,
+                    ImageUrl = "https://images.unsplash.com/photo-1495360010541-f48722b34f7d",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-6),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Mario is looking 4 home",
+                    PetName = "Mario",
+                    PetCategory = PetCategory.Dogs,
+                    PostType = PostType.Adoption,
+                    Description = "Pls help Mario to have a home",
+                    Location = "Welland",
+                    ContactEmail = "Sofia@gmail.com",
+                    PreferredContact = PreferredContactMethod.Email,
+                    ImageUrl = "https://images.unsplash.com/photo-1518717758536-85ae29035b6d",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-5),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Found near college: Rocky",
+                    PetName = "Rocky",
+                    PetCategory = PetCategory.Dogs,
+                    PostType = PostType.Found,
+                    Description = "Friendly dog found near campus entrance. Looking for the owner.",
+                    Location = "Niagara Falls",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1537151625747-768eb6cf92b2",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-4),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Missing cat: Nube",
+                    PetName = "Nube",
+                    PetCategory = PetCategory.Cats,
+                    PostType = PostType.Lost,
+                    Description = "Small white cat missing since yesterday evening.",
+                    Location = "Welland",
+                    ContactEmail = "help@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1592194996308-7b43878e84a6",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-3),
+                    UserId = guestUser.UserId
+                },
+                new PetPost
+                {
+                    Title = "Parakeet for adoption: Kiwi",
+                    PetName = "Kiwi",
+                    PetCategory = PetCategory.Birds,
+                    PostType = PostType.Adoption,
+                    Description = "Calm parakeet, healthy and ready for a caring home.",
+                    Location = "St. Catharines",
+                    ContactEmail = "listings@cotas.demo",
+                    ImageUrl = "https://images.unsplash.com/photo-1552728089-57bdde30beb3",
+                    Status = PostStatus.Approved,
+                    DatePosted = DateTime.Now.AddDays(-2),
+                    UserId = guestUser.UserId
+                }
+            };
+
+            var added = false;
+            foreach (var legacy in legacyPosts)
+            {
+                var exists = context.PetPosts.Any(p => p.Title == legacy.Title && p.PetName == legacy.PetName);
+                if (exists)
+                {
+                    continue;
+                }
+
+                context.PetPosts.Add(legacy);
+                added = true;
+            }
+
+            if (added)
+            {
                 context.SaveChanges();
             }
         }

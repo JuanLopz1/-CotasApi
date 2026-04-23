@@ -26,10 +26,44 @@ namespace _CotasApi.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<LoginResponseDto>> Login(LoginRequestDto loginDto)
         {
-            var user = await _context.Users
-                .SingleOrDefaultAsync(u => u.Email == loginDto.Email);
+            var email = loginDto.Email.Trim();
+            var password = loginDto.Password;
 
-            if (user == null || user.Password != loginDto.Password)
+            var user = await _context.Users
+                .SingleOrDefaultAsync(u => u.Email == email);
+
+            if (user == null)
+            {
+                // Azure-safe bootstrap: allow demo admin accounts to self-heal if the seed user is missing.
+                if (email.Equals("admin@example.com", StringComparison.OrdinalIgnoreCase) && password == "admin123")
+                {
+                    user = new User
+                    {
+                        Name = "Admin User",
+                        Email = "admin@example.com",
+                        Password = "admin123",
+                        Role = UserRole.Admin,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+                }
+                else if (email.Equals("jdlopz10@gmail.com", StringComparison.OrdinalIgnoreCase) && password == "Juan123")
+                {
+                    user = new User
+                    {
+                        Name = "Staff Admin",
+                        Email = "jdlopz10@gmail.com",
+                        Password = "Juan123",
+                        Role = UserRole.Admin,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            if (user == null || user.Password != password)
             {
                 return Unauthorized("Invalid email or password.");
             }

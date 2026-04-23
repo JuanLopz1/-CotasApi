@@ -84,16 +84,14 @@ export default function HomePage({ initialPosts, listSeededRef, homeRefreshKey }
         listSeededRef.current = true;
         if (!cancelled) {
           setPosts(initialPosts ?? []);
-          setIsLoading(false);
         }
-        return;
       }
 
       if (!listSeededRef.current) {
         listSeededRef.current = true;
       }
 
-      if (!cancelled) {
+      if (!cancelled && !coldStart) {
         setIsLoading(true);
       }
       try {

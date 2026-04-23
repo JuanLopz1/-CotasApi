@@ -441,7 +441,23 @@ namespace _CotasApi.Controllers
                 .OrderBy(u => u.UserId)
                 .FirstOrDefaultAsync(u => u.Email == guestEmail);
 
-            return guest?.UserId ?? 0;
+            if (guest != null)
+            {
+                return guest.UserId;
+            }
+
+            guest = new User
+            {
+                Name = "Guest User",
+                Email = guestEmail,
+                Password = "guest",
+                Role = UserRole.User,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Users.Add(guest);
+            await _context.SaveChangesAsync();
+            return guest.UserId;
         }
 
         private async Task<string?> ResolveImageUrlAsync(CreatePetPostDto createDto)
