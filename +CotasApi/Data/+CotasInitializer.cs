@@ -27,7 +27,7 @@ namespace _CotasApi.Data
                 RemoveLogoPosts(context);
                 RemoveCommunityPetPlaceholderPosts(context);
                 SeedPetPostsFromImageFolder(context, env);
-                if (!context.PetPosts.Any())
+                if (!HasPublicVisiblePosts(context))
                 {
                     SeedEmergencyData(context);
                 }
@@ -256,7 +256,7 @@ namespace _CotasApi.Data
             var guestUser = context.Users.FirstOrDefault(u => u.Email == "guest@cotas.local");
             if (guestUser == null) return;
 
-            if (!context.PetPosts.Any())
+            if (!HasPublicVisiblePosts(context))
             {
                 context.PetPosts.AddRange(new List<PetPost>
                 {
@@ -291,6 +291,14 @@ namespace _CotasApi.Data
                 });
                 context.SaveChanges();
             }
+        }
+
+        private static bool HasPublicVisiblePosts(_CotasContext context)
+        {
+            return context.PetPosts.Any(p =>
+                p.Status == PostStatus.Approved &&
+                p.ImageUrl != null &&
+                p.ImageUrl != "");
         }
 
         private static bool IsLogoImagePath(string path)
