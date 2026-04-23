@@ -26,9 +26,13 @@ namespace _CotasApi.Data
                 EnsureStaffAdminUser(context);
                 RemoveLogoPosts(context);
                 RemoveCommunityPetPlaceholderPosts(context);
-                SeedPetPostsFromImageFolder(context);
-                SeedEmergencyData(context);
-                ClearMissingLocalImageUrls(context, env);
+                SeedPetPostsFromImageFolder(context, env);
+                if (!context.PetPosts.Any())
+                {
+                    SeedEmergencyData(context);
+                }
+                // Temporarily disabled for Azure fallback flow; re-enable when local /img publishing is stable.
+                // ClearMissingLocalImageUrls(context, env);
             }
             catch (Exception ex)
             {
@@ -136,9 +140,9 @@ namespace _CotasApi.Data
             context.SaveChanges();
         }
 
-        private static void SeedPetPostsFromImageFolder(_CotasContext context)
+        private static void SeedPetPostsFromImageFolder(_CotasContext context, IWebHostEnvironment env)
         {
-            var imageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "img");
+            var imageDirectory = Path.Combine(env.ContentRootPath, "img");
             if (!Directory.Exists(imageDirectory))
             {
                 return;
