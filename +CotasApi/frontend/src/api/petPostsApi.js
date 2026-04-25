@@ -1,6 +1,22 @@
 const API_BASE = "https://cotasapi-jdlop-acarexacb9hkh3d6.centralus-01.azurewebsites.net/";
 const API_BASE_URL = `${API_BASE}api/PetPosts`;
 
+/** Turn API-relative paths (/img/...) into absolute URLs so images load from the API host, not the SPA origin. */
+export function resolvePetImageSrc(imageUrl) {
+  if (!imageUrl || !String(imageUrl).trim()) {
+    return null;
+  }
+  const trimmed = String(imageUrl).trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  try {
+    return new URL(trimmed, API_BASE).href;
+  } catch {
+    return trimmed;
+  }
+}
+
 function buildQuery(filters) {
   const safe = filters ?? {};
   const params = new URLSearchParams();
@@ -114,13 +130,10 @@ export async function createPetPost(newPost, token) {
     body.set("preferredContact", String(newPost.preferredContact));
   }
 
-  if (newPost.imageUrl) {
-    body.set("imageUrl", newPost.imageUrl);
+  if (!newPost.imageFile) {
+    throw new Error("An image file is required.");
   }
-
-  if (newPost.imageFile) {
-    body.set("imageFile", newPost.imageFile);
-  }
+  body.set("imageFile", newPost.imageFile);
 
   const response = await fetch(API_BASE_URL, {
     method: "POST",
@@ -193,9 +206,6 @@ export async function updatePetPost(id, payload, token) {
     payload.preferredContact !== ""
   ) {
     body.set("preferredContact", String(payload.preferredContact));
-  }
-  if (payload.imageUrl) {
-    body.set("imageUrl", payload.imageUrl);
   }
   if (payload.imageFile) {
     body.set("imageFile", payload.imageFile);

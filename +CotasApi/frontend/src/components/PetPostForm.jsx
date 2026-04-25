@@ -12,8 +12,7 @@ const initialForm = {
   location: "",
   contactEmail: "",
   contactPhone: "",
-  preferredContact: "",
-  imageUrl: ""
+  preferredContact: ""
 };
 
 const OTHERS_VALUE = 3;
@@ -110,6 +109,11 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
       return;
     }
 
+    if (!imageFile) {
+      setFieldError({ key: "image", message: "Please upload a photo (PNG, JPG, or other image file)." });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const submitResult = await onSubmit({
@@ -127,7 +131,6 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
         contactPhone: formData.contactPhone.trim() || undefined,
         preferredContact:
           formData.preferredContact === "" ? undefined : Number(formData.preferredContact),
-        imageUrl: formData.imageUrl.trim(),
         imageFile
       });
 
@@ -357,22 +360,24 @@ function PetPostForm({ onSubmit, currentUser, navigateAfterSuccess = null }) {
           ) : null}
         </label>
 
-        <label className="field">
-          <span>Image URL (optional)</span>
-          <input
-            placeholder="https://… or /img/dog1.jpg"
-            value={formData.imageUrl}
-            onChange={(event) => handleChange("imageUrl", event.target.value)}
-          />
-        </label>
-
-        <label className="field">
-          <span>Or upload image (optional)</span>
+        <label className="field field-full">
+          <span>{requiredLabel("Photo")}</span>
           <input
             type="file"
-            accept="image/*"
-            onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
+            accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp,.heic"
+            onChange={(event) => {
+              setImageFile(event.target.files?.[0] ?? null);
+              setFieldError(null);
+            }}
+            aria-invalid={fieldError?.key === "image" ? "true" : undefined}
           />
+          {fieldError?.key === "image" ? (
+            <span className="form-error field-error-inline" role="alert">
+              {fieldError.message}
+            </span>
+          ) : (
+            <span className="muted">Upload a clear photo. Only image files are accepted.</span>
+          )}
         </label>
 
         <button className="btn btn-primary form-submit" type="submit" disabled={isSubmitting}>

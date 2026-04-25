@@ -2,6 +2,7 @@ using _CotasApi.Models;
 using _CotasApi.Data;
 using _CotasApi.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,10 +15,12 @@ namespace _CotasApi.Controllers
     public class PetPostsController : ControllerBase
     {
         private readonly _CotasContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public PetPostsController(_CotasContext context)
+        public PetPostsController(_CotasContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         private bool IsAdmin() =>
@@ -162,6 +165,11 @@ namespace _CotasApi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<PetPostDto>> CreatePetPost([FromForm] CreatePetPostDto createDto)
         {
+            if (createDto.ImageFile is not { Length: > 0 })
+            {
+                return BadRequest("An image file is required (PNG, JPG, or other common image formats).");
+            }
+
             var userId = await ResolveAuthorUserIdAsync();
             if (userId <= 0)
             {
@@ -171,6 +179,16 @@ namespace _CotasApi.Controllers
             var kindLabel = string.IsNullOrWhiteSpace(createDto.PetKindLabel)
                 ? null
                 : createDto.PetKindLabel.Trim();
+
+            string imageUrl;
+            try
+            {
+                imageUrl = await SaveUploadedImageAsync(createDto.ImageFile);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
 
             var post = new PetPost
             {
@@ -187,7 +205,7 @@ namespace _CotasApi.Controllers
                     : createDto.ContactPhone.Trim(),
                 PreferredContact = createDto.PreferredContact,
                 UserId = userId,
-                ImageUrl = await ResolveImageUrlAsync(createDto)
+                ImageUrl = imageUrl
             };
 
             post.Status = PostStatus.Pending;
@@ -240,11 +258,14 @@ namespace _CotasApi.Controllers
             }
             else if (dto.ImageFile is { Length: > 0 })
             {
-                existingPost.ImageUrl = await SaveUploadedImageAsync(dto.ImageFile);
-            }
-            else if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
-            {
-                existingPost.ImageUrl = NormalizeImagePath(dto.ImageUrl);
+                try
+                {
+                    existingPost.ImageUrl = await SaveUploadedImageAsync(dto.ImageFile);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return BadRequest(ex.Message);
+                }
             }
 
             if (dto.Status.HasValue)
@@ -460,51 +481,30 @@ namespace _CotasApi.Controllers
             return guest.UserId;
         }
 
-        private async Task<string?> ResolveImageUrlAsync(CreatePetPostDto createDto)
-        {
-            if (createDto.ImageFile is { Length: > 0 })
-            {
-                return await SaveUploadedImageAsync(createDto.ImageFile);
-            }
-
-            if (!string.IsNullOrWhiteSpace(createDto.ImageUrl))
-            {
-                return NormalizeImagePath(createDto.ImageUrl);
-            }
-
-            return null;
-        }
-
-        private static string NormalizeImagePath(string rawPath)
-        {
-            var normalized = rawPath.Trim().Replace("\\", "/");
-
-            if (normalized.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                normalized.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            {
-                return normalized;
-            }
-
-            if (normalized.StartsWith("/img/", StringComparison.OrdinalIgnoreCase))
-            {
-                return normalized;
-            }
-
-            if (normalized.StartsWith("img/", StringComparison.OrdinalIgnoreCase))
-            {
-                return $"/{normalized}";
-            }
-
-            normalized = normalized.TrimStart('/');
-            return $"/img/{normalized}";
-        }
-
-        private static async Task<string> SaveUploadedImageAsync(IFormFile imageFile)
+        private async Task<string> SaveUploadedImageAsync(IFormFile imageFile)
         {
             var extension = Path.GetExtension(imageFile.FileName);
             var safeExtension = string.IsNullOrWhiteSpace(extension) ? ".jpg" : extension.ToLowerInvariant();
+            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".bmp", ".jfif", ".heic"
+            };
+
+            if (!allowed.Contains(safeExtension))
+            {
+                throw new InvalidOperationException($"Unsupported image extension: {safeExtension}");
+            }
+
+            var ct = imageFile.ContentType ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(ct) &&
+                !ct.StartsWith("image/", StringComparison.OrdinalIgnoreCase) &&
+                !ct.Equals("application/octet-stream", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Uploaded file must be an image.");
+            }
+
             var fileName = $"{Guid.NewGuid():N}{safeExtension}";
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "img", "uploads");
+            var uploadsFolder = Path.Combine(_env.ContentRootPath, "img", "uploads");
             Directory.CreateDirectory(uploadsFolder);
             var destinationPath = Path.Combine(uploadsFolder, fileName);
 

@@ -8,6 +8,7 @@ import {
   petCategoryLabel,
   postTypeOptions,
   preferredContactLabel,
+  resolvePetImageSrc,
   statusPresentation,
   togglePetLike,
   updatePetPost,
@@ -274,9 +275,10 @@ export default function PostDetailPage() {
   const postTypeLabel = getOptionLabel(postTypeOptions, post.postType);
   const categoryLine = petCategoryLabel(post);
   const cta = ctaForPostType(post.postType);
-  const hasImageUrl = Boolean(post.imageUrl && String(post.imageUrl).trim());
+  const resolvedImage = resolvePetImageSrc(post.imageUrl);
+  const hasImageUrl = Boolean(resolvedImage);
   const showPhoto = hasImageUrl && !imageBroken;
-  const imageSrc = hasImageUrl ? post.imageUrl : NO_PHOTO_SVG;
+  const imageSrc = hasImageUrl ? resolvedImage : NO_PHOTO_SVG;
   const isAdoption = post.postType === 0;
   const isOwnListing = uid !== null && uid === post.userId;
   const canManageListing = isOwnListing || isAdmin;

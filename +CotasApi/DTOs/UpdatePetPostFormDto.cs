@@ -41,9 +41,6 @@ namespace _CotasApi.DTOs
 
         public PreferredContactMethod? PreferredContact { get; set; }
 
-        [StringLength(260)]
-        public string? ImageUrl { get; set; }
-
         public IFormFile? ImageFile { get; set; }
 
         public bool ClearImage { get; set; }

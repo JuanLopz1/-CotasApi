@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { petCategoryLabel, postTypeOptions, statusPresentation } from "../api/petPostsApi";
+import { petCategoryLabel, postTypeOptions, resolvePetImageSrc, statusPresentation } from "../api/petPostsApi";
 
 function getOptionLabel(options, value) {
   const option = options.find((item) => item.value === value);
@@ -32,11 +32,12 @@ function PetPostCard({
   const postTypeLabel = getOptionLabel(postTypeOptions, post.postType);
   const status = statusPresentation(post);
   const isAdoption = post.postType === 0;
-  const hasImageUrl = Boolean(post.imageUrl && String(post.imageUrl).trim());
+  const resolvedSrc = resolvePetImageSrc(post.imageUrl);
+  const hasImageUrl = Boolean(resolvedSrc);
   const categoryLine = petCategoryLabel(post);
 
   const showPhotoArea = hasImageUrl && !imageBroken;
-  const imageSrc = hasImageUrl ? post.imageUrl : NO_PHOTO_SVG;
+  const imageSrc = hasImageUrl ? resolvedSrc : NO_PHOTO_SVG;
 
   function stopCardNavigation(event) {
     event.stopPropagation();

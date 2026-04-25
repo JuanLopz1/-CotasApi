@@ -41,8 +41,8 @@ namespace _CotasApi.DTOs
 
         public PreferredContactMethod? PreferredContact { get; set; }
 
-        [StringLength(260)]
-        public string? ImageUrl { get; set; }
-        public IFormFile? ImageFile { get; set; }
+        /// <summary>Required listing photo; only file uploads are accepted (no external URL field).</summary>
+        [Required]
+        public IFormFile ImageFile { get; set; } = null!;
     }
 }

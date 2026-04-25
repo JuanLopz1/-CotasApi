@@ -4,6 +4,7 @@ import {
   petCategoryOptions,
   postTypeOptions,
   preferredContactOptions,
+  resolvePetImageSrc,
   statusOptions
 } from "../api/petPostsApi";
 
@@ -26,7 +27,6 @@ function PetPostEditModal({ post, isSaving, onClose, onSave }) {
       post.preferredContact !== undefined && post.preferredContact !== null
         ? String(post.preferredContact)
         : "",
-    imageUrl: post.imageUrl ?? "",
     status: String(post.status),
     imageFile: null,
     clearImage: false
@@ -82,7 +82,6 @@ function PetPostEditModal({ post, isSaving, onClose, onSave }) {
       contactEmail: form.contactEmail.trim(),
       contactPhone: form.contactPhone.trim() || undefined,
       preferredContact: form.preferredContact === "" ? undefined : Number(form.preferredContact),
-      imageUrl: form.clearImage ? "" : form.imageUrl.trim(),
       imageFile: form.imageFile,
       clearImage: form.clearImage,
       status: Number(form.status)
@@ -260,21 +259,26 @@ function PetPostEditModal({ post, isSaving, onClose, onSave }) {
               />
             </label>
 
-            <label className="field field-full">
-              <span>Image URL</span>
-              <input
-                disabled={form.clearImage}
-                value={form.imageUrl}
-                onChange={(event) => handleChange("imageUrl", event.target.value)}
-                placeholder="https://… or /img/…"
-              />
-            </label>
+            {post.imageUrl && !form.clearImage ? (
+              <div className="field field-full">
+                <span>Current photo</span>
+                <div className="edit-modal-photo-preview">
+                  <img
+                    src={resolvePetImageSrc(post.imageUrl) ?? ""}
+                    alt=""
+                    width={200}
+                    height={120}
+                    style={{ objectFit: "cover", borderRadius: 8, maxWidth: "100%" }}
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <label className="field field-full">
-              <span>Replace image (upload)</span>
+              <span>Replace image (upload a file)</span>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp,.heic"
                 disabled={form.clearImage}
                 onChange={(event) => handleChange("imageFile", event.target.files?.[0] ?? null)}
               />
