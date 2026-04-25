@@ -32,6 +32,10 @@ namespace _CotasApi.Models
         [StringLength(100)]
         public string Location { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Public URL path for the listing photo, set only by the server (upload handler or local seed under /img/...).
+        /// Clients do not send this column; use multipart file upload on create/update.
+        /// </summary>
         [StringLength(260)]
         public string? ImageUrl { get; set; }
 

@@ -161,6 +161,7 @@ namespace _CotasApi.Controllers
 
         // POST: api/petposts
         [HttpPost]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(PetPostDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<PetPostDto>> CreatePetPost([FromForm] CreatePetPostDto createDto)
